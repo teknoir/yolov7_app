@@ -1,0 +1,5 @@
+jetsonnano-b00 ansible_host=jetsonnano-b00.local ansible_user=teknoir ansible_become=yes ansible_become_user=root ansible_become_pass=Raspberry4
+jetsonnano-a01 ansible_host=jetsonnano-a01.local ansible_user=jetson ansible_become=yes ansible_become_user=root ansible_become_pass=Raspberry4
+jetson-xnx ansible_host=jetson-xnx.local ansible_user=teknoir ansible_become=yes ansible_become_user=root ansible_become_pass=Raspberry4
+jetson-xnx-dk ansible_host=jetson-xnx-dk.local ansible_user=teknoir ansible_become=yes ansible_become_user=root ansible_become_pass=Raspberry4
+jetson-agx-orin ansible_host=jetson-agx-orin.local ansible_user=teknoir ansible_become=yes ansible_become_user=root ansible_become_pass=Raspberry4

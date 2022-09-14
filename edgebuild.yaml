@@ -1,0 +1,95 @@
+---
+- name: yolov7
+  hosts: all
+  vars:
+    project_id: "{{ lookup('env','PROJECT_ID') }}"
+  tasks:
+    - name: Ensure workdir (and some subdirs)
+      ansible.builtin.file:
+        path: /opt/teknoir/yolov7
+        state: directory
+        mode: '0755'
+
+    - name: RSync workdir
+      rsync:
+        src: "{{ playbook_dir }}/"
+        dest: /opt/teknoir/yolov7/
+        recursive: yes
+        delete: yes
+        rsync_opts:
+          - --include=models/
+          - --include=utils/
+          - --include=*.yaml
+          - --include=*.txt
+          - --include=*.sh
+          - --include=*.py
+          - --include=*.Dockerfile
+          - --exclude=*
+
+    - name: Get L4T Version
+      shell:
+        cmd: cat /etc/nv_tegra_release
+      register: nv_tegra_release_content
+
+    - name: Set L4T Version variable
+      set_fact:
+        l4t_version: "r{{ nv_tegra_release_content.stdout | regex_search('R(\\d+).*REVISION:\\s+(\\d+.\\d+)', '\\1', '\\2') | join('.') }}"
+
+    - name: Fix Nvidia versioning f-up
+      set_fact:
+        real_l4t_version: r32.7.2
+        l4t_version: r32.7.1
+      when: l4t_version == "r32.7.2"
+
+    - name: Set images var
+      set_fact:
+        base_images:
+          "r32.6.1": "nvcr.io/nvidia/l4t-pytorch:r32.6.1-pth1.9-py3"
+          "r32.7.1": "nvcr.io/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
+          "r32.7.2": "nvcr.io/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
+          "r34.1.1": "nvcr.io/nvidia/l4t-pytorch:r34.1.1-pth1.11-py3"
+          "r35.1.0": "nvcr.io/nvidia/l4t-pytorch:r35.1.0-pth1.11-py3"
+
+    - name: Set image vars
+      set_fact:
+        base_image: "{{ base_images[l4t_version] }}"
+        image_name: "gcr.io/teknoir/yolov7"
+        tag: "l4t{{ l4t_version }}"
+
+    - name: Build PyTorch Yolov7 image
+      ansible.builtin.shell: |
+        export DOCKER_BUILDKIT=1
+        docker build \
+        --tag={{ image_name }}:{{ tag }} \
+        --build-arg=BASE_IMAGE={{ base_image }} \
+        --file=arm64v8.l4t.Dockerfile .
+      args:
+        chdir: /opt/teknoir/yolov7
+      vars:
+        ansible_command_timeout: 6000
+
+    - name: Get temporary registry access token
+      local_action:
+        module: ansible.builtin.command
+        _raw_params: gcloud auth application-default print-access-token
+      register: access_token_result
+
+    - name: Set access token variable
+      set_fact:
+        access_token: "{{ access_token_result.stdout }}"
+
+    - name: Push image
+      ansible.builtin.shell: |
+        echo "{{ access_token }}" | \
+        docker login -u oauth2accesstoken --password-stdin https://gcr.io/teknoir
+        docker push {{ image_name }}:{{ tag }}
+      vars:
+        ansible_command_timeout: 6000
+
+    - name: Fix Nvidia versioning f-up
+      ansible.builtin.shell: |
+        docker tag {{ image_name }}:{{ tag }} {{ image_name }}:l4t{{ real_l4t_version }}
+        docker push {{ image_name }}:l4t{{ real_l4t_version }}
+      vars:
+        ansible_command_timeout: 6000
+      when: l4t_version == "r32.7.1"
