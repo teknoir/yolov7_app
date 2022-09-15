@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
-export SHORT_SHA=${SHORT_SHA:-"local"}
-export BRANCH_NAME=${BRANCH_NAME:-"head"}
+export SHORT_SHA=${SHORT_SHA:-"head"}
+export BRANCH_NAME=${BRANCH_NAME:-"local"}
 export PROJECT_ID=${PROJECT_ID:-"teknoir"}
 
 # Get vanilla model and COCOA names file
@@ -40,7 +40,7 @@ build_and_push(){
     --platform=linux/arm64 \
     --push \
     -t gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG}-${BRANCH_NAME}-${SHORT_SHA} \
-    -f ./arm64v8.l4t.vanilla.Dockerfile .
+    -f ./vanilla.Dockerfile .
 }
 
 build_and_push l4tr34.1.1

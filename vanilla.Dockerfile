@@ -3,7 +3,7 @@
 # I.e. models, weights, settings and python files can be added here, as long as there is nothing executed (no adding of deps etc.)
 
 ARG BASE_IMAGE=gcr.io/teknoir/yolov7:l4tr32.7.1
-FROM ${BASE_IMAGE} as base
+FROM ${BASE_IMAGE}
 
 ARG MODEL_NAME=yolov7
 ENV MODEL_NAME=$MODEL_NAME
