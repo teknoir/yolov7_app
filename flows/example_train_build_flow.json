@@ -1,0 +1,2508 @@
+[
+  {
+    "id": "08d556b69cbd174e",
+    "type": "group",
+    "z": "606f4917.77ad88",
+    "name": "Train YOLOv7 PPE Model",
+    "style": {
+      "label": true
+    },
+    "nodes": [
+      "6707ecc60e041584",
+      "67c3f15c81bf448e",
+      "95812de97ecbcbfb",
+      "d85b83292a496ea6",
+      "8093a2461c55acf8"
+    ],
+    "x": 14,
+    "y": 253,
+    "w": 1458,
+    "h": 194
+  },
+  {
+    "id": "6707ecc60e041584",
+    "type": "inject",
+    "z": "606f4917.77ad88",
+    "g": "08d556b69cbd174e",
+    "name": "Start Pipelines",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "",
+    "crontab": "00 00 * * 0",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payloadType": "date",
+    "x": 140,
+    "y": 320,
+    "wires": [
+      [
+        "73bb53e51fa80e3e"
+      ]
+    ]
+  },
+  {
+    "id": "67c3f15c81bf448e",
+    "type": "function",
+    "z": "606f4917.77ad88",
+    "g": "08d556b69cbd174e",
+    "name": "Add model name with date",
+    "func": "let timestamp = (new Date()).toISOString().replace(/T/g, '.').replace(/-/g, '').replace(/:/g, '').replace(/\\./g, '').replace(/Z/g, '');\nmsg.payload.project_info['model_name'] = msg.payload.project_info.labelstudio_project.replace(/_/g, '-') + '-' + timestamp;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 720,
+    "y": 320,
+    "wires": [
+      [
+        "d8d6898206d8cb81"
+      ]
+    ]
+  },
+  {
+    "id": "95812de97ecbcbfb",
+    "type": "group",
+    "z": "606f4917.77ad88",
+    "g": "08d556b69cbd174e",
+    "name": "Label Studio Data Extraction",
+    "style": {
+      "stroke": "#92d04f",
+      "fill": "#c8e7a7",
+      "fill-opacity": "0.1",
+      "label": true
+    },
+    "nodes": [
+      "73bb53e51fa80e3e"
+    ],
+    "x": 254,
+    "y": 279,
+    "w": 312,
+    "h": 82
+  },
+  {
+    "id": "73bb53e51fa80e3e",
+    "type": "ls-project-export-meta",
+    "z": "606f4917.77ad88",
+    "g": "95812de97ecbcbfb",
+    "name": "Get Label Studio Project Details",
+    "selectedProjectId": "39",
+    "selectedProject": {
+      "id": 39,
+      "title": "ppe_bbox_multiclass",
+      "description": "",
+      "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <RectangleLabels name=\"label\" toName=\"image\">\n    \n    \n  <Label value=\"torso\" background=\"#FFA39E\"/><Label value=\"head\" background=\"#D4380D\"/><Label value=\"person\" background=\"#FFC069\"/><Label value=\"safety vest\" background=\"#AD8B00\"/><Label value=\"hard hat\" background=\"#D3F261\"/></RectangleLabels>\n</View>",
+      "expert_instruction": "",
+      "show_instruction": false,
+      "show_skip_button": true,
+      "enable_empty_annotation": true,
+      "show_annotation_history": false,
+      "organization": 1,
+      "color": "#FA8C16",
+      "maximum_annotations": 1,
+      "is_published": false,
+      "model_version": "",
+      "is_draft": false,
+      "created_by": {
+        "id": 13,
+        "first_name": "",
+        "last_name": "",
+        "email": "michael.bell@teknoir.ai",
+        "avatar": null
+      },
+      "created_at": "2022-08-28T17:12:04.900191Z",
+      "min_annotations_to_start_training": 0,
+      "start_training_on_annotation_update": false,
+      "show_collab_predictions": true,
+      "num_tasks_with_annotations": 211,
+      "task_number": 211,
+      "useful_annotation_number": 211,
+      "ground_truth_number": 0,
+      "skipped_annotations_number": 0,
+      "total_annotations_number": 211,
+      "total_predictions_number": 0,
+      "sampling": "Sequential sampling",
+      "show_ground_truth_first": false,
+      "show_overlap_first": false,
+      "overlap_cohort_percentage": 100,
+      "task_data_login": null,
+      "task_data_password": null,
+      "control_weights": {
+        "label": {
+          "overall": 1,
+          "type": "RectangleLabels",
+          "labels": {
+            "torso": 1,
+            "head": 1,
+            "person": 1,
+            "safety vest": 1,
+            "hard hat": 1
+          }
+        }
+      },
+      "parsed_label_config": {
+        "label": {
+          "type": "RectangleLabels",
+          "to_name": [
+            "image"
+          ],
+          "inputs": [
+            {
+              "type": "Image",
+              "value": "image"
+            }
+          ],
+          "labels": [
+            "torso",
+            "head",
+            "person",
+            "safety vest",
+            "hard hat"
+          ],
+          "labels_attrs": {
+            "torso": {
+              "value": "torso",
+              "background": "#FFA39E"
+            },
+            "head": {
+              "value": "head",
+              "background": "#D4380D"
+            },
+            "person": {
+              "value": "person",
+              "background": "#FFC069"
+            },
+            "safety vest": {
+              "value": "safety vest",
+              "background": "#AD8B00"
+            },
+            "hard hat": {
+              "value": "hard hat",
+              "background": "#D3F261"
+            }
+          }
+        }
+      },
+      "evaluate_predictions_automatically": false,
+      "config_has_control_tags": true,
+      "skip_queue": "REQUEUE_FOR_OTHERS",
+      "reveal_preannotations_interactively": false
+    },
+    "lsProjects": [
+      {
+        "id": 39,
+        "title": "ppe_bbox_multiclass",
+        "description": "",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <RectangleLabels name=\"label\" toName=\"image\">\n    \n    \n  <Label value=\"torso\" background=\"#FFA39E\"/><Label value=\"head\" background=\"#D4380D\"/><Label value=\"person\" background=\"#FFC069\"/><Label value=\"safety vest\" background=\"#AD8B00\"/><Label value=\"hard hat\" background=\"#D3F261\"/></RectangleLabels>\n</View>",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#FA8C16",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "",
+        "is_draft": false,
+        "created_by": {
+          "id": 13,
+          "first_name": "",
+          "last_name": "",
+          "email": "michael.bell@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-08-28T17:12:04.900191Z",
+        "min_annotations_to_start_training": 0,
+        "start_training_on_annotation_update": false,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 211,
+        "task_number": 211,
+        "useful_annotation_number": 211,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 0,
+        "total_annotations_number": 211,
+        "total_predictions_number": 0,
+        "sampling": "Sequential sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "label": {
+            "overall": 1,
+            "type": "RectangleLabels",
+            "labels": {
+              "torso": 1,
+              "head": 1,
+              "person": 1,
+              "safety vest": 1,
+              "hard hat": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "label": {
+            "type": "RectangleLabels",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "torso",
+              "head",
+              "person",
+              "safety vest",
+              "hard hat"
+            ],
+            "labels_attrs": {
+              "torso": {
+                "value": "torso",
+                "background": "#FFA39E"
+              },
+              "head": {
+                "value": "head",
+                "background": "#D4380D"
+              },
+              "person": {
+                "value": "person",
+                "background": "#FFC069"
+              },
+              "safety vest": {
+                "value": "safety vest",
+                "background": "#AD8B00"
+              },
+              "hard hat": {
+                "value": "hard hat",
+                "background": "#D3F261"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      },
+      {
+        "id": 34,
+        "title": "pictor_ppe_seg",
+        "description": "",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\" zoom=\"true\"/>\n  <BrushLabels name=\"tag\" toName=\"image\">\n    \n    \n  <Label value=\"safety vest\" background=\"#ff0000\"/><Label value=\"hard hat\" background=\"#0dd33f\"/><Label value=\"person\" background=\"#00bfff\"/></BrushLabels>\n</View>",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#F6C549",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "",
+        "is_draft": false,
+        "created_by": {
+          "id": 13,
+          "first_name": "",
+          "last_name": "",
+          "email": "michael.bell@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-08-09T18:50:50.665628Z",
+        "min_annotations_to_start_training": 0,
+        "start_training_on_annotation_update": false,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 7,
+        "task_number": 6321,
+        "useful_annotation_number": 7,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 0,
+        "total_annotations_number": 7,
+        "total_predictions_number": 0,
+        "sampling": "Sequential sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "tag": {
+            "overall": 1,
+            "type": "BrushLabels",
+            "labels": {
+              "safety vest": 1,
+              "hard hat": 1,
+              "person": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "tag": {
+            "type": "BrushLabels",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "safety vest",
+              "hard hat",
+              "person"
+            ],
+            "labels_attrs": {
+              "safety vest": {
+                "value": "safety vest",
+                "background": "#ff0000"
+              },
+              "hard hat": {
+                "value": "hard hat",
+                "background": "#0dd33f"
+              },
+              "person": {
+                "value": "person",
+                "background": "#00bfff"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      },
+      {
+        "id": 32,
+        "title": "ppe_bbox_clean",
+        "description": "Bounding Boxes for YOLO person regions model for PPE detection",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <RectangleLabels name=\"label\" toName=\"image\">\n    \n    \n  <Label value=\"torso\" background=\"#a5ff9e\"/><Label value=\"head\" background=\"#0d25d3\"/><Label value=\"person\" background=\"#FFC069\"/><Label value=\"hard hat\" background=\"#fd3f3f\"/><Label value=\"safety vest\" background=\"#d30dcc\"/></RectangleLabels>\n</View>",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#FFFFFF",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "",
+        "is_draft": false,
+        "created_by": {
+          "id": 13,
+          "first_name": "",
+          "last_name": "",
+          "email": "michael.bell@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-08-09T00:28:07.699063Z",
+        "min_annotations_to_start_training": 0,
+        "start_training_on_annotation_update": false,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 224,
+        "task_number": 224,
+        "useful_annotation_number": 224,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 0,
+        "total_annotations_number": 224,
+        "total_predictions_number": 0,
+        "sampling": "Sequential sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "label": {
+            "overall": 1,
+            "type": "RectangleLabels",
+            "labels": {
+              "torso": 1,
+              "head": 1,
+              "person": 1,
+              "hard hat": 1,
+              "safety vest": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "label": {
+            "type": "RectangleLabels",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "torso",
+              "head",
+              "person",
+              "hard hat",
+              "safety vest"
+            ],
+            "labels_attrs": {
+              "torso": {
+                "value": "torso",
+                "background": "#a5ff9e"
+              },
+              "head": {
+                "value": "head",
+                "background": "#0d25d3"
+              },
+              "person": {
+                "value": "person",
+                "background": "#FFC069"
+              },
+              "hard hat": {
+                "value": "hard hat",
+                "background": "#fd3f3f"
+              },
+              "safety vest": {
+                "value": "safety vest",
+                "background": "#d30dcc"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      },
+      {
+        "id": 31,
+        "title": "hard_hat_classification",
+        "description": "",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <Choices name=\"choice\" toName=\"image\">\n    \n    \n    \n  <Choice value=\"Hard Hat\"/><Choice value=\"NO Hard Hat\"/></Choices>\n</View>",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#FFFFFF",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "",
+        "is_draft": false,
+        "created_by": {
+          "id": 11,
+          "first_name": "",
+          "last_name": "",
+          "email": "sai.vudattu@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-08-08T20:04:51.612874Z",
+        "min_annotations_to_start_training": 0,
+        "start_training_on_annotation_update": false,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 785,
+        "task_number": 785,
+        "useful_annotation_number": 815,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 9,
+        "total_annotations_number": 815,
+        "total_predictions_number": 0,
+        "sampling": "Sequential sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "choice": {
+            "overall": 1,
+            "type": "Choices",
+            "labels": {
+              "Hard Hat": 1,
+              "NO Hard Hat": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "choice": {
+            "type": "Choices",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "Hard Hat",
+              "NO Hard Hat"
+            ],
+            "labels_attrs": {
+              "Hard Hat": {
+                "value": "Hard Hat"
+              },
+              "NO Hard Hat": {
+                "value": "NO Hard Hat"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      },
+      {
+        "id": 27,
+        "title": "safety_vest_classification",
+        "description": "",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <Choices name=\"choice\" toName=\"image\">\n    \n    \n    \n  <Choice value=\"Safety Vest\"/><Choice value=\"No Safety Vest\"/></Choices>\n</View>",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#FFFFFF",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "",
+        "is_draft": false,
+        "created_by": {
+          "id": 13,
+          "first_name": "",
+          "last_name": "",
+          "email": "michael.bell@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-08-01T16:41:47.448803Z",
+        "min_annotations_to_start_training": 0,
+        "start_training_on_annotation_update": false,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 734,
+        "task_number": 766,
+        "useful_annotation_number": 734,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 41,
+        "total_annotations_number": 734,
+        "total_predictions_number": 0,
+        "sampling": "Uniform sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "choice": {
+            "overall": 1,
+            "type": "Choices",
+            "labels": {
+              "Safety Vest": 1,
+              "No Safety Vest": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "choice": {
+            "type": "Choices",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "Safety Vest",
+              "No Safety Vest"
+            ],
+            "labels_attrs": {
+              "Safety Vest": {
+                "value": "Safety Vest"
+              },
+              "No Safety Vest": {
+                "value": "No Safety Vest"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      },
+      {
+        "id": 26,
+        "title": "Westlake-Demo",
+        "description": "",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <RectangleLabels name=\"label\" toName=\"image\">\n    <Label value=\"CARDBOARD\" background=\"#FFA39E\"/>\n    <Label value=\"CONTAINER\" background=\"#A39EFF\"/>\n    <Label value=\"FILM\" background=\"#D4380D\"/>\n    <Label value=\"FOAM\" background=\"#FFC069\"/>\n    <Label value=\"PERSON\" background=\"#D3F261\"/>\n  \t<Label value=\"PAPER\" background=\"#9effef\"/>\n  </RectangleLabels>\n</View>",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#FFFFFF",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "0.0.8-2-objects",
+        "is_draft": false,
+        "created_by": {
+          "id": 1,
+          "first_name": "",
+          "last_name": "",
+          "email": "anders.aslund@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-07-28T18:47:47.057097Z",
+        "min_annotations_to_start_training": 0,
+        "start_training_on_annotation_update": false,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 2,
+        "task_number": 15916,
+        "useful_annotation_number": 2,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 0,
+        "total_annotations_number": 2,
+        "total_predictions_number": 11438,
+        "sampling": "Sequential sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "label": {
+            "overall": 1,
+            "type": "RectangleLabels",
+            "labels": {
+              "CARDBOARD": 1,
+              "CONTAINER": 1,
+              "FILM": 1,
+              "FOAM": 1,
+              "PERSON": 1,
+              "PAPER": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "label": {
+            "type": "RectangleLabels",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "CARDBOARD",
+              "CONTAINER",
+              "FILM",
+              "FOAM",
+              "PERSON",
+              "PAPER"
+            ],
+            "labels_attrs": {
+              "CARDBOARD": {
+                "value": "CARDBOARD",
+                "background": "#FFA39E"
+              },
+              "CONTAINER": {
+                "value": "CONTAINER",
+                "background": "#A39EFF"
+              },
+              "FILM": {
+                "value": "FILM",
+                "background": "#D4380D"
+              },
+              "FOAM": {
+                "value": "FOAM",
+                "background": "#FFC069"
+              },
+              "PERSON": {
+                "value": "PERSON",
+                "background": "#D3F261"
+              },
+              "PAPER": {
+                "value": "PAPER",
+                "background": "#9effef"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      },
+      {
+        "id": 13,
+        "title": "ai-cv-demo",
+        "description": "Teknoir Computer Vision Demo",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <RectangleLabels name=\"label\" toName=\"image\">\n    <Label value=\"CARDBOARD\" background=\"#FFA39E\"/>\n    <Label value=\"FILM\" background=\"#D4380D\"/>\n    <Label value=\"FOAM\" background=\"#FFC069\"/>\n    <Label value=\"PERSON\" background=\"#D3F261\"/>\n    <Label value=\"CONTAINER\" background=\"#A39EFF\"/>\n  <Label value=\"PAPER\" background=\"#9effef\"/></RectangleLabels>\n</View><!--{\"annotations\": [{\"result\": [ { \"original_width\": 600, \"original_height\": 403, \"image_rotation\": 0, \"value\": { \"x\": 4.21455938697318, \"y\": 11.142857142857142, \"width\": 32.95019157088122, \"height\": 46.285714285714285, \"rotation\": 0, \"rectanglelabels\": [ \"Airplane\" ] }, \"id\": \"PIhJM1YYpH\", \"from_name\": \"label\", \"to_name\": \"image\", \"type\": \"rectanglelabels\" }, { \"original_width\": 600, \"original_height\": 403, \"image_rotation\": 0, \"value\": { \"x\": 30.076628352490417, \"y\": 44.57142857142857, \"width\": 32.56704980842912, \"height\": 46, \"rotation\": 0, \"rectanglelabels\": [ \"Airplane\" ] }, \"id\": \"lnimBBYxMU\", \"from_name\": \"label\", \"to_name\": \"image\", \"type\": \"rectanglelabels\" }, { \"original_width\": 600, \"original_height\": 403, \"image_rotation\": 0, \"value\": { \"x\": 67.17850287907869, \"y\": 18, \"width\": 28.406909788867566, \"height\": 43.714285714285715, \"rotation\": 0, \"rectanglelabels\": [ \"Airplane\" ] }, \"id\": \"sBjX3KteGU\", \"from_name\": \"label\", \"to_name\": \"image\", \"type\": \"rectanglelabels\" }, { \"original_width\": 600, \"original_height\": 403, \"image_rotation\": 0, \"value\": { \"x\": 77.01149425287356, \"y\": 84.57142857142857, \"width\": 3.4482758620689653, \"height\": 5.142857142857142, \"rotation\": 0, \"rectanglelabels\": [ \"Car\" ] }, \"id\": \"TIYiC1Bh67\", \"from_name\": \"label\", \"to_name\": \"image\", \"type\": \"rectanglelabels\" }, { \"original_width\": 600, \"original_height\": 403, \"image_rotation\": 0, \"value\": { \"x\": 85.02879078694816, \"y\": 83.71428571428572, \"width\": 2.879078694817658, \"height\": 4.857142857142856, \"rotation\": 0, \"rectanglelabels\": [ \"Car\" ] }, \"id\": \"mL8hEBkvJt\", \"from_name\": \"label\", \"to_name\": \"image\", \"type\": \"rectanglelabels\" }, { \"original_width\": 600, \"original_height\": 403, \"image_rotation\": 0, \"value\": { \"x\": 57.08812260536399, \"y\": 87.42857142857143, \"width\": 5.363984674329502, \"height\": 7.142857142857142, \"rotation\": 0, \"rectanglelabels\": [ \"Car\" ] }, \"id\": \"3gpRfF9MkN\", \"from_name\": \"label\", \"to_name\": \"image\", \"type\": \"rectanglelabels\" } ] }]} -->",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#FFFFFF",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "0.0.8-2-objects",
+        "is_draft": false,
+        "created_by": {
+          "id": 1,
+          "first_name": "",
+          "last_name": "",
+          "email": "anders.aslund@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-06-07T15:21:37.240501Z",
+        "min_annotations_to_start_training": 10,
+        "start_training_on_annotation_update": true,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 9,
+        "task_number": 9699,
+        "useful_annotation_number": 9,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 0,
+        "total_annotations_number": 9,
+        "total_predictions_number": 9266,
+        "sampling": "Sequential sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "label": {
+            "overall": 1,
+            "type": "RectangleLabels",
+            "labels": {
+              "CARDBOARD": 1,
+              "FILM": 1,
+              "FOAM": 1,
+              "PERSON": 1,
+              "CONTAINER": 1,
+              "PAPER": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "label": {
+            "type": "RectangleLabels",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "CARDBOARD",
+              "FILM",
+              "FOAM",
+              "PERSON",
+              "CONTAINER",
+              "PAPER"
+            ],
+            "labels_attrs": {
+              "CARDBOARD": {
+                "value": "CARDBOARD",
+                "background": "#FFA39E"
+              },
+              "FILM": {
+                "value": "FILM",
+                "background": "#D4380D"
+              },
+              "FOAM": {
+                "value": "FOAM",
+                "background": "#FFC069"
+              },
+              "PERSON": {
+                "value": "PERSON",
+                "background": "#D3F261"
+              },
+              "CONTAINER": {
+                "value": "CONTAINER",
+                "background": "#A39EFF"
+              },
+              "PAPER": {
+                "value": "PAPER",
+                "background": "#9effef"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      },
+      {
+        "id": 5,
+        "title": "ppe",
+        "description": "Teknoir PPE detection",
+        "label_config": "<View>\n  <Image name=\"image\" value=\"$image\"/>\n  <RectangleLabels name=\"label\" toName=\"image\">\n    <Label value=\"worker\" background=\"#F37121\"/>\n    <Label value=\"worker_vest\" background=\"#EF5179\"/>\n    <Label value=\"worker_hardhat\" background=\"#515DDE\"/>\n    <Label value=\"worker_vest_hardhat\" background=\"#C0E218\"/>\n  </RectangleLabels>\n</View><!-- C0E218, 111D5E, C70039, F37121  -->",
+        "expert_instruction": "",
+        "show_instruction": false,
+        "show_skip_button": true,
+        "enable_empty_annotation": true,
+        "show_annotation_history": false,
+        "organization": 1,
+        "color": "#FFFFFF",
+        "maximum_annotations": 1,
+        "is_published": false,
+        "model_version": "undefined",
+        "is_draft": false,
+        "created_by": {
+          "id": 1,
+          "first_name": "",
+          "last_name": "",
+          "email": "anders.aslund@teknoir.ai",
+          "avatar": null
+        },
+        "created_at": "2022-02-15T10:17:50.183913Z",
+        "min_annotations_to_start_training": 10,
+        "start_training_on_annotation_update": true,
+        "show_collab_predictions": true,
+        "num_tasks_with_annotations": 1123,
+        "task_number": 9478,
+        "useful_annotation_number": 1150,
+        "ground_truth_number": 0,
+        "skipped_annotations_number": 65,
+        "total_annotations_number": 1150,
+        "total_predictions_number": 9231,
+        "sampling": "Sequential sampling",
+        "show_ground_truth_first": false,
+        "show_overlap_first": false,
+        "overlap_cohort_percentage": 100,
+        "task_data_login": null,
+        "task_data_password": null,
+        "control_weights": {
+          "label": {
+            "overall": 1,
+            "type": "RectangleLabels",
+            "labels": {
+              "worker": 1,
+              "worker_vest": 1,
+              "worker_hardhat": 1,
+              "worker_vest_hardhat": 1
+            }
+          }
+        },
+        "parsed_label_config": {
+          "label": {
+            "type": "RectangleLabels",
+            "to_name": [
+              "image"
+            ],
+            "inputs": [
+              {
+                "type": "Image",
+                "value": "image"
+              }
+            ],
+            "labels": [
+              "worker",
+              "worker_vest",
+              "worker_hardhat",
+              "worker_vest_hardhat"
+            ],
+            "labels_attrs": {
+              "worker": {
+                "value": "worker",
+                "background": "#F37121"
+              },
+              "worker_vest": {
+                "value": "worker_vest",
+                "background": "#EF5179"
+              },
+              "worker_hardhat": {
+                "value": "worker_hardhat",
+                "background": "#515DDE"
+              },
+              "worker_vest_hardhat": {
+                "value": "worker_vest_hardhat",
+                "background": "#C0E218"
+              }
+            }
+          }
+        },
+        "evaluate_predictions_automatically": false,
+        "config_has_control_tags": true,
+        "skip_queue": "REQUEUE_FOR_OTHERS",
+        "reveal_preannotations_interactively": false
+      }
+    ],
+    "labelType": "RectangleLabels",
+    "projectLabels": [
+      "torso",
+      "head",
+      "person",
+      "safety vest",
+      "hard hat"
+    ],
+    "x": 410,
+    "y": 320,
+    "wires": [
+      [
+        "67c3f15c81bf448e"
+      ]
+    ]
+  },
+  {
+    "id": "d85b83292a496ea6",
+    "type": "group",
+    "z": "606f4917.77ad88",
+    "g": "08d556b69cbd174e",
+    "name": "Train PPE Model",
+    "style": {
+      "stroke": "#ffC000",
+      "fill": "#ffdf7f",
+      "fill-opacity": "0.1",
+      "label": true
+    },
+    "nodes": [
+      "d8d6898206d8cb81",
+      "ecf071fc99c5dd78"
+    ],
+    "x": 894,
+    "y": 279,
+    "w": 552,
+    "h": 142
+  },
+  {
+    "id": "d8d6898206d8cb81",
+    "type": "run-existing-and-poll",
+    "z": "606f4917.77ad88",
+    "g": "d85b83292a496ea6",
+    "name": "Train new YOLOv7 model",
+    "runName": "Train YOLOv7 for PPE Demo",
+    "selectedPipeline": "9da8918e-3b15-48ba-9b49-d43ca3bb307f",
+    "pipelineArguments": [
+      {
+        "name": "model_name"
+      },
+      {
+        "name": "labelstudio_project"
+      },
+      {
+        "name": "labels"
+      },
+      {
+        "name": "namespace"
+      },
+      {
+        "name": "domain"
+      },
+      {
+        "name": "config_template_url",
+        "value": "gs://teknoir-ai.teknoir.cloud/yolov7/cfg/yolov7-tiny-config-template.yaml"
+      },
+      {
+        "name": "transfer_weights_url",
+        "value": "gs://teknoir-ai.teknoir.cloud/yolov7/weights/yolov7_training.pt"
+      },
+      {
+        "name": "hyp_file_url",
+        "value": "gs://teknoir-ai.teknoir.cloud/yolov7/hyp/hyp.scratch.tiny.yaml"
+      },
+      {
+        "name": "train_frac",
+        "value": "0.7"
+      },
+      {
+        "name": "validate_frac",
+        "value": "0.2"
+      },
+      {
+        "name": "batch_size",
+        "value": "32"
+      },
+      {
+        "name": "img_size_train",
+        "value": "640"
+      },
+      {
+        "name": "img_size_test",
+        "value": "640"
+      },
+      {
+        "name": "epochs",
+        "value": "300"
+      }
+    ],
+    "userArguments": [
+      {
+        "name": "model_name",
+        "value": "ppe_bbox_multiclass"
+      },
+      {
+        "name": "labelstudio_project",
+        "value": "ppe_bbox_multiclass"
+      },
+      {
+        "name": "labels",
+        "value": "torso, head, person, safety vest, hard hat"
+      },
+      {
+        "name": "namespace",
+        "value": "teknoir-ai"
+      },
+      {
+        "name": "config_template_url",
+        "value": "gs://teknoir-ai.teknoir.cloud/yolov7/cfg/yolov7-tiny-config-template.yaml"
+      },
+      {
+        "name": "transfer_weights_url",
+        "value": "gs://teknoir-ai.teknoir.cloud/yolov7/weights/yolov7_training.pt"
+      },
+      {
+        "name": "hyp_file_url",
+        "value": "gs://teknoir-ai.teknoir.cloud/yolov7/hyp/hyp.scratch.tiny.yaml"
+      },
+      {
+        "name": "train_frac",
+        "value": "0.7"
+      },
+      {
+        "name": "validate_frac",
+        "value": "0.2"
+      },
+      {
+        "name": "batch_size",
+        "value": "8"
+      },
+      {
+        "name": "img_size_train",
+        "value": "416"
+      },
+      {
+        "name": "img_size_test",
+        "value": "416"
+      },
+      {
+        "name": "epochs",
+        "value": "300"
+      }
+    ],
+    "pipelines": [
+      {
+        "id": "a9bf507b-b634-488b-9e16-98351ff1d2d2",
+        "created_at": "2022-09-10T13:03:33Z",
+        "name": "Build YOLOv7 App",
+        "description": "A pipeline to build custom YOLOv7 Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "img_size"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "a9bf507b-b634-488b-9e16-98351ff1d2d2",
+          "name": "Build YOLOv7 App",
+          "created_at": "2022-09-10T13:03:33Z",
+          "parameters": [
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "img_size"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "a9bf507b-b634-488b-9e16-98351ff1d2d2"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "433fcda9-ba95-41fa-a723-9b36f153523f",
+        "created_at": "2022-08-31T09:39:24Z",
+        "name": "Patch device",
+        "description": "A Kubeflow pipeline running Ansible playbook from a git repo on a subset of devices",
+        "parameters": [
+          {
+            "name": "playbook_repo"
+          },
+          {
+            "name": "playbook_path"
+          },
+          {
+            "name": "ansible_limit"
+          }
+        ],
+        "default_version": {
+          "id": "2cf45963-7d09-4d07-86ea-0b775cfacd57",
+          "name": "Patch device - 3c0dab",
+          "created_at": "2022-09-09T10:14:55Z",
+          "parameters": [
+            {
+              "name": "playbook_repo"
+            },
+            {
+              "name": "playbook_path"
+            },
+            {
+              "name": "ansible_limit"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "433fcda9-ba95-41fa-a723-9b36f153523f"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "19ea7c9d-bd96-4337-bf83-29b264790f4f",
+        "created_at": "2022-08-20T19:35:55Z",
+        "name": "Prepare Labelstudio Data for YOLOv7 Model Training",
+        "description": "A pipeline to prepare LabelStudio data for YOLOv7 model training",
+        "parameters": [
+          {
+            "name": "labelstudio_project"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          },
+          {
+            "name": "train_frac",
+            "value": "0.7"
+          },
+          {
+            "name": "validate_frac",
+            "value": "0.2"
+          },
+          {
+            "name": "shuffle_data",
+            "value": "False"
+          }
+        ],
+        "default_version": {
+          "id": "ef0b5253-f252-4f57-870a-6c5fd2f3e412",
+          "name": "Prepare Labelstudio Data for YOLOv7 Model Training - c65754",
+          "created_at": "2022-08-20T19:37:52Z",
+          "parameters": [
+            {
+              "name": "labelstudio_project"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            },
+            {
+              "name": "train_frac",
+              "value": "0.7"
+            },
+            {
+              "name": "validate_frac",
+              "value": "0.2"
+            },
+            {
+              "name": "shuffle_data",
+              "value": "False"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "19ea7c9d-bd96-4337-bf83-29b264790f4f"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "9da8918e-3b15-48ba-9b49-d43ca3bb307f",
+        "created_at": "2022-08-17T20:36:51Z",
+        "name": "Train YOLOv7 with Labelstudio and 1 T4 GPU",
+        "description": "A pipeline to train YOLOv7 on a custom data set from Teknoir Labelstudio. Transfer learn from \"transfer_weights.\"",
+        "parameters": [
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "labelstudio_project"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          },
+          {
+            "name": "config_template_url",
+            "value": "gs://teknoir-ai.teknoir.cloud/yolov7/cfg/yolov7-tiny-config-template.yaml"
+          },
+          {
+            "name": "transfer_weights_url",
+            "value": "gs://teknoir-ai.teknoir.cloud/yolov7/weights/yolov7_training.pt"
+          },
+          {
+            "name": "hyp_file_url",
+            "value": "gs://teknoir-ai.teknoir.cloud/yolov7/hyp/hyp.scratch.tiny.yaml"
+          },
+          {
+            "name": "train_frac",
+            "value": "0.7"
+          },
+          {
+            "name": "validate_frac",
+            "value": "0.2"
+          },
+          {
+            "name": "batch_size",
+            "value": "32"
+          },
+          {
+            "name": "img_size_train",
+            "value": "640"
+          },
+          {
+            "name": "img_size_test",
+            "value": "640"
+          },
+          {
+            "name": "epochs",
+            "value": "300"
+          }
+        ],
+        "default_version": {
+          "id": "f73ffe6e-3ef0-48b5-922d-2b785765821f",
+          "name": "Train YOLOv7 with Labelstudio and 1 T4 GPU - 1fd10f",
+          "created_at": "2022-08-30T16:03:40Z",
+          "parameters": [
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "labelstudio_project"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            },
+            {
+              "name": "config_template_url",
+              "value": "gs://teknoir-ai.teknoir.cloud/yolov7/cfg/yolov7-tiny-config-template.yaml"
+            },
+            {
+              "name": "transfer_weights_url",
+              "value": "gs://teknoir-ai.teknoir.cloud/yolov7/weights/yolov7_training.pt"
+            },
+            {
+              "name": "hyp_file_url",
+              "value": "gs://teknoir-ai.teknoir.cloud/yolov7/hyp/hyp.scratch.tiny.yaml"
+            },
+            {
+              "name": "train_frac",
+              "value": "0.7"
+            },
+            {
+              "name": "validate_frac",
+              "value": "0.2"
+            },
+            {
+              "name": "batch_size",
+              "value": "16"
+            },
+            {
+              "name": "img_size_train",
+              "value": "416"
+            },
+            {
+              "name": "img_size_test",
+              "value": "416"
+            },
+            {
+              "name": "epochs",
+              "value": "300"
+            },
+            {
+              "name": "disk_space",
+              "value": "10000Mi"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "9da8918e-3b15-48ba-9b49-d43ca3bb307f"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2f23a9dc-194c-4adb-a9d7-ddf61b367fef",
+        "created_at": "2022-06-07T05:59:59Z",
+        "name": "Build Systayn Event Processing App",
+        "description": "A pipeline to build the Systayn Event Processing App docker image",
+        "parameters": [
+          {
+            "name": "base_image"
+          },
+          {
+            "name": "base_image_tag_prefix"
+          },
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "flows_name"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "337968a4-e805-45d1-8b0d-8077a301e30e",
+          "name": "Build Systayn Event Processing App - a39001",
+          "created_at": "2022-08-02T18:01:13Z",
+          "parameters": [
+            {
+              "name": "base_image"
+            },
+            {
+              "name": "base_image_tag_prefix"
+            },
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "flows_name"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "2f23a9dc-194c-4adb-a9d7-ddf61b367fef"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "784bb823-20ce-4444-9dc2-389c38700c9b",
+        "created_at": "2022-03-21T07:44:51Z",
+        "name": "Build Deepstream Yolo MQTT App",
+        "description": "A pipeline to build custom Deepstream Yolo MQTT Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "db597576-5ea1-4a16-8a6d-3e4bd09dca67",
+          "name": "Build Deepstream Yolo MQTT App - ef66d0",
+          "created_at": "2022-03-23T10:31:55Z",
+          "parameters": [
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "784bb823-20ce-4444-9dc2-389c38700c9b"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "98be0405-50c6-419f-8cb1-2b724a093a39",
+        "created_at": "2021-10-14T13:52:58Z",
+        "name": "Build Devstudio App",
+        "description": "A pipeline to build custom multi architecture Devstudio Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "flows_name"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "5535fe7e-47ed-42d4-ab3e-b10f3eabcfdc",
+          "name": "Build Devstudio App - 163980",
+          "created_at": "2021-10-21T11:49:41Z",
+          "parameters": [
+            {
+              "name": "base_image"
+            },
+            {
+              "name": "base_image_tag_prefix"
+            },
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "flows_name"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "98be0405-50c6-419f-8cb1-2b724a093a39"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "671839ad-5f4e-43c4-8708-4c9981e4c816",
+        "created_at": "2021-10-08T07:53:43Z",
+        "name": "Patch_Artifactory_Access",
+        "default_version": {
+          "id": "35c9ebb4-bb34-4551-a137-239f2bd92a91",
+          "name": "v0.0.15",
+          "created_at": "2021-10-11T08:11:33Z",
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "671839ad-5f4e-43c4-8708-4c9981e4c816"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "fbc05d67-a75a-47cc-9bab-affd814601cf",
+        "created_at": "2021-09-27T11:42:38Z",
+        "name": "Train YoloV4 Tiny with Labelstudio and 1 T4 GPU",
+        "description": "A pipeline to train Darknet YoloV4 Tiny on a custom data set from Teknoir Labelstudio",
+        "parameters": [
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "labelstudio_project"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "35383af1-b03f-44af-bee8-642ed6ff9998",
+          "name": "Train YoloV4 Tiny with Labelstudio and 1 T4 GPU - 092e4d",
+          "created_at": "2022-07-07T15:26:26Z",
+          "parameters": [
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "labelstudio_project"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            },
+            {
+              "name": "retrain_url"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "fbc05d67-a75a-47cc-9bab-affd814601cf"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "ffbf89c1-f49b-46d9-9386-38f25b730f18",
+        "created_at": "2021-09-27T11:34:17Z",
+        "name": "Build Darknet App",
+        "description": "A pipeline to build custom multi architecture Darknet Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "80153601-1d61-4006-af45-8b551c684cfd",
+          "name": "Build Darknet App - 34a845",
+          "created_at": "2022-08-02T17:50:41Z",
+          "parameters": [
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "ffbf89c1-f49b-46d9-9386-38f25b730f18"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "4eaf7a44-8b1d-4955-9808-0a5f4030820a",
+        "created_at": "2021-09-23T13:56:37Z",
+        "name": "IoT Core Usage Export",
+        "description": "A pipeline to that export all namespaces IoT Core usage to Bigquery",
+        "parameters": [
+          {
+            "name": "scheduled_time",
+            "value": "[[ScheduledTime]]"
+          },
+          {
+            "name": "current_time",
+            "value": "[[CurrentTime]]"
+          }
+        ],
+        "default_version": {
+          "id": "345e85fe-d45e-46c4-a2f1-2278b538f07a",
+          "name": "IoT Core Usage Export_version_at_2021-09-23T16:46:36.183Z",
+          "created_at": "2021-09-23T16:46:45Z",
+          "parameters": [
+            {
+              "name": "scheduled_time",
+              "value": "[[ScheduledTime]]"
+            },
+            {
+              "name": "current_time",
+              "value": "[[CurrentTime]]"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "4eaf7a44-8b1d-4955-9808-0a5f4030820a"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "5a365228-9864-49dd-98c6-59f9acc8df9c",
+        "created_at": "2021-06-18T06:07:39Z",
+        "name": "Patch003",
+        "description": "Patches devices with 003 version",
+        "default_version": {
+          "id": "d4d3d40d-ca58-471e-9921-794840418528",
+          "name": "v0.0.11",
+          "created_at": "2022-08-31T20:15:40Z",
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "5a365228-9864-49dd-98c6-59f9acc8df9c"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      }
+    ],
+    "agrumentsSelector": "project_info",
+    "agrumentsSelectorType": "msgPayload",
+    "triggerStatus": "Succeeded",
+    "x": 1030,
+    "y": 320,
+    "wires": [
+      [
+        "ecf071fc99c5dd78"
+      ]
+    ]
+  },
+  {
+    "id": "ecf071fc99c5dd78",
+    "type": "run-existing-and-poll",
+    "z": "606f4917.77ad88",
+    "g": "d85b83292a496ea6",
+    "name": "Build new versions of YOLOv7 App",
+    "runName": "Build YOLOv7 app",
+    "selectedPipeline": "a9bf507b-b634-488b-9e16-98351ff1d2d2",
+    "pipelineArguments": [
+      {
+        "name": "image_name"
+      },
+      {
+        "name": "model_name"
+      },
+      {
+        "name": "img_size"
+      },
+      {
+        "name": "namespace"
+      },
+      {
+        "name": "domain"
+      }
+    ],
+    "userArguments": [
+      {
+        "name": "image_name",
+        "value": "yolov7-ppe-hhsv"
+      },
+      {
+        "name": "model_name",
+        "value": "ppe-bbox-multiclass-20220907231701674"
+      },
+      {
+        "name": "img_size",
+        "value": "416"
+      },
+      {
+        "name": "namespace",
+        "value": "teknoir-ai"
+      },
+      {
+        "name": "domain",
+        "value": "teknoir.cloud"
+      }
+    ],
+    "pipelines": [
+      {
+        "id": "a9bf507b-b634-488b-9e16-98351ff1d2d2",
+        "created_at": "2022-09-10T13:03:33Z",
+        "name": "Build YOLOv7 App",
+        "description": "A pipeline to build custom YOLOv7 Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "img_size"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "636a45a8-9e18-4d69-a75d-226dde8c948f",
+          "name": "Build YOLOv7 App - f6fd30",
+          "created_at": "2022-09-13T15:31:30Z",
+          "parameters": [
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "img_size"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "a9bf507b-b634-488b-9e16-98351ff1d2d2"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "433fcda9-ba95-41fa-a723-9b36f153523f",
+        "created_at": "2022-08-31T09:39:24Z",
+        "name": "Patch device",
+        "description": "A Kubeflow pipeline running Ansible playbook from a git repo on a subset of devices",
+        "parameters": [
+          {
+            "name": "playbook_repo"
+          },
+          {
+            "name": "playbook_path"
+          },
+          {
+            "name": "ansible_limit"
+          }
+        ],
+        "default_version": {
+          "id": "2cf45963-7d09-4d07-86ea-0b775cfacd57",
+          "name": "Patch device - 3c0dab",
+          "created_at": "2022-09-09T10:14:55Z",
+          "parameters": [
+            {
+              "name": "playbook_repo"
+            },
+            {
+              "name": "playbook_path"
+            },
+            {
+              "name": "ansible_limit"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "433fcda9-ba95-41fa-a723-9b36f153523f"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "19ea7c9d-bd96-4337-bf83-29b264790f4f",
+        "created_at": "2022-08-20T19:35:55Z",
+        "name": "Prepare Labelstudio Data for YOLOv7 Model Training",
+        "description": "A pipeline to prepare LabelStudio data for YOLOv7 model training",
+        "parameters": [
+          {
+            "name": "labelstudio_project"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          },
+          {
+            "name": "train_frac",
+            "value": "0.7"
+          },
+          {
+            "name": "validate_frac",
+            "value": "0.2"
+          },
+          {
+            "name": "shuffle_data",
+            "value": "False"
+          }
+        ],
+        "default_version": {
+          "id": "ef0b5253-f252-4f57-870a-6c5fd2f3e412",
+          "name": "Prepare Labelstudio Data for YOLOv7 Model Training - c65754",
+          "created_at": "2022-08-20T19:37:52Z",
+          "parameters": [
+            {
+              "name": "labelstudio_project"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            },
+            {
+              "name": "train_frac",
+              "value": "0.7"
+            },
+            {
+              "name": "validate_frac",
+              "value": "0.2"
+            },
+            {
+              "name": "shuffle_data",
+              "value": "False"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "19ea7c9d-bd96-4337-bf83-29b264790f4f"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "9da8918e-3b15-48ba-9b49-d43ca3bb307f",
+        "created_at": "2022-08-17T20:36:51Z",
+        "name": "Train YOLOv7 with Labelstudio and 1 T4 GPU",
+        "description": "A pipeline to train YOLOv7 on a custom data set from Teknoir Labelstudio. Transfer learn from \"transfer_weights.\"",
+        "parameters": [
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "labelstudio_project"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          },
+          {
+            "name": "config_template_url",
+            "value": "gs://teknoir-ai.teknoir.cloud/yolov7/cfg/yolov7-tiny-config-template.yaml"
+          },
+          {
+            "name": "transfer_weights_url",
+            "value": "gs://teknoir-ai.teknoir.cloud/yolov7/weights/yolov7_training.pt"
+          },
+          {
+            "name": "hyp_file_url",
+            "value": "gs://teknoir-ai.teknoir.cloud/yolov7/hyp/hyp.scratch.tiny.yaml"
+          },
+          {
+            "name": "train_frac",
+            "value": "0.7"
+          },
+          {
+            "name": "validate_frac",
+            "value": "0.2"
+          },
+          {
+            "name": "batch_size",
+            "value": "32"
+          },
+          {
+            "name": "img_size_train",
+            "value": "640"
+          },
+          {
+            "name": "img_size_test",
+            "value": "640"
+          },
+          {
+            "name": "epochs",
+            "value": "300"
+          }
+        ],
+        "default_version": {
+          "id": "f73ffe6e-3ef0-48b5-922d-2b785765821f",
+          "name": "Train YOLOv7 with Labelstudio and 1 T4 GPU - 1fd10f",
+          "created_at": "2022-08-30T16:03:40Z",
+          "parameters": [
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "labelstudio_project"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            },
+            {
+              "name": "config_template_url",
+              "value": "gs://teknoir-ai.teknoir.cloud/yolov7/cfg/yolov7-tiny-config-template.yaml"
+            },
+            {
+              "name": "transfer_weights_url",
+              "value": "gs://teknoir-ai.teknoir.cloud/yolov7/weights/yolov7_training.pt"
+            },
+            {
+              "name": "hyp_file_url",
+              "value": "gs://teknoir-ai.teknoir.cloud/yolov7/hyp/hyp.scratch.tiny.yaml"
+            },
+            {
+              "name": "train_frac",
+              "value": "0.7"
+            },
+            {
+              "name": "validate_frac",
+              "value": "0.2"
+            },
+            {
+              "name": "batch_size",
+              "value": "16"
+            },
+            {
+              "name": "img_size_train",
+              "value": "416"
+            },
+            {
+              "name": "img_size_test",
+              "value": "416"
+            },
+            {
+              "name": "epochs",
+              "value": "300"
+            },
+            {
+              "name": "disk_space",
+              "value": "10000Mi"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "9da8918e-3b15-48ba-9b49-d43ca3bb307f"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "2f23a9dc-194c-4adb-a9d7-ddf61b367fef",
+        "created_at": "2022-06-07T05:59:59Z",
+        "name": "Build Systayn Event Processing App",
+        "description": "A pipeline to build the Systayn Event Processing App docker image",
+        "parameters": [
+          {
+            "name": "base_image"
+          },
+          {
+            "name": "base_image_tag_prefix"
+          },
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "flows_name"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "337968a4-e805-45d1-8b0d-8077a301e30e",
+          "name": "Build Systayn Event Processing App - a39001",
+          "created_at": "2022-08-02T18:01:13Z",
+          "parameters": [
+            {
+              "name": "base_image"
+            },
+            {
+              "name": "base_image_tag_prefix"
+            },
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "flows_name"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "2f23a9dc-194c-4adb-a9d7-ddf61b367fef"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "784bb823-20ce-4444-9dc2-389c38700c9b",
+        "created_at": "2022-03-21T07:44:51Z",
+        "name": "Build Deepstream Yolo MQTT App",
+        "description": "A pipeline to build custom Deepstream Yolo MQTT Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "db597576-5ea1-4a16-8a6d-3e4bd09dca67",
+          "name": "Build Deepstream Yolo MQTT App - ef66d0",
+          "created_at": "2022-03-23T10:31:55Z",
+          "parameters": [
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "784bb823-20ce-4444-9dc2-389c38700c9b"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "98be0405-50c6-419f-8cb1-2b724a093a39",
+        "created_at": "2021-10-14T13:52:58Z",
+        "name": "Build Devstudio App",
+        "description": "A pipeline to build custom multi architecture Devstudio Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "flows_name"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "5535fe7e-47ed-42d4-ab3e-b10f3eabcfdc",
+          "name": "Build Devstudio App - 163980",
+          "created_at": "2021-10-21T11:49:41Z",
+          "parameters": [
+            {
+              "name": "base_image"
+            },
+            {
+              "name": "base_image_tag_prefix"
+            },
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "flows_name"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "98be0405-50c6-419f-8cb1-2b724a093a39"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "671839ad-5f4e-43c4-8708-4c9981e4c816",
+        "created_at": "2021-10-08T07:53:43Z",
+        "name": "Patch_Artifactory_Access",
+        "default_version": {
+          "id": "35c9ebb4-bb34-4551-a137-239f2bd92a91",
+          "name": "v0.0.15",
+          "created_at": "2021-10-11T08:11:33Z",
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "671839ad-5f4e-43c4-8708-4c9981e4c816"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "fbc05d67-a75a-47cc-9bab-affd814601cf",
+        "created_at": "2021-09-27T11:42:38Z",
+        "name": "Train YoloV4 Tiny with Labelstudio and 1 T4 GPU",
+        "description": "A pipeline to train Darknet YoloV4 Tiny on a custom data set from Teknoir Labelstudio",
+        "parameters": [
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "labelstudio_project"
+          },
+          {
+            "name": "labels"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "35383af1-b03f-44af-bee8-642ed6ff9998",
+          "name": "Train YoloV4 Tiny with Labelstudio and 1 T4 GPU - 092e4d",
+          "created_at": "2022-07-07T15:26:26Z",
+          "parameters": [
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "labelstudio_project"
+            },
+            {
+              "name": "labels"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            },
+            {
+              "name": "retrain_url"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "fbc05d67-a75a-47cc-9bab-affd814601cf"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "ffbf89c1-f49b-46d9-9386-38f25b730f18",
+        "created_at": "2021-09-27T11:34:17Z",
+        "name": "Build Darknet App",
+        "description": "A pipeline to build custom multi architecture Darknet Apps",
+        "parameters": [
+          {
+            "name": "image_name"
+          },
+          {
+            "name": "model_name"
+          },
+          {
+            "name": "namespace"
+          },
+          {
+            "name": "domain"
+          }
+        ],
+        "default_version": {
+          "id": "80153601-1d61-4006-af45-8b551c684cfd",
+          "name": "Build Darknet App - 34a845",
+          "created_at": "2022-08-02T17:50:41Z",
+          "parameters": [
+            {
+              "name": "image_name"
+            },
+            {
+              "name": "model_name"
+            },
+            {
+              "name": "namespace"
+            },
+            {
+              "name": "domain"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "ffbf89c1-f49b-46d9-9386-38f25b730f18"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "4eaf7a44-8b1d-4955-9808-0a5f4030820a",
+        "created_at": "2021-09-23T13:56:37Z",
+        "name": "IoT Core Usage Export",
+        "description": "A pipeline to that export all namespaces IoT Core usage to Bigquery",
+        "parameters": [
+          {
+            "name": "scheduled_time",
+            "value": "[[ScheduledTime]]"
+          },
+          {
+            "name": "current_time",
+            "value": "[[CurrentTime]]"
+          }
+        ],
+        "default_version": {
+          "id": "345e85fe-d45e-46c4-a2f1-2278b538f07a",
+          "name": "IoT Core Usage Export_version_at_2021-09-23T16:46:36.183Z",
+          "created_at": "2021-09-23T16:46:45Z",
+          "parameters": [
+            {
+              "name": "scheduled_time",
+              "value": "[[ScheduledTime]]"
+            },
+            {
+              "name": "current_time",
+              "value": "[[CurrentTime]]"
+            }
+          ],
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "4eaf7a44-8b1d-4955-9808-0a5f4030820a"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      },
+      {
+        "id": "5a365228-9864-49dd-98c6-59f9acc8df9c",
+        "created_at": "2021-06-18T06:07:39Z",
+        "name": "Patch003",
+        "description": "Patches devices with 003 version",
+        "default_version": {
+          "id": "d4d3d40d-ca58-471e-9921-794840418528",
+          "name": "v0.0.11",
+          "created_at": "2022-08-31T20:15:40Z",
+          "resource_references": [
+            {
+              "key": {
+                "type": "PIPELINE",
+                "id": "5a365228-9864-49dd-98c6-59f9acc8df9c"
+              },
+              "relationship": "OWNER"
+            }
+          ]
+        }
+      }
+    ],
+    "agrumentsSelector": "input_args",
+    "agrumentsSelectorType": "msgPayload",
+    "triggerStatus": "Succeeded",
+    "x": 1280,
+    "y": 380,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "8093a2461c55acf8",
+    "type": "inject",
+    "z": "606f4917.77ad88",
+    "g": "08d556b69cbd174e",
+    "name": "Retrigger App Build",
+    "props": [
+      {
+        "p": "payload.input_args",
+        "v": "{}",
+        "vt": "json"
+      }
+    ],
+    "repeat": "",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "x": 710,
+    "y": 380,
+    "wires": [
+      [
+        "ecf071fc99c5dd78"
+      ]
+    ]
+  }
+]

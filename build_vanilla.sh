@@ -25,14 +25,15 @@ download_cache coco.names https://raw.githubusercontent.com/onnx/models/main/vis
 download_cache yolov7.pt https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt
 
 build_and_push(){
-  TAG=$1
-  ARCH=$2
+  BASE_TAG=$1
+  TAG=$2
+  ARCH=$3
   # Make sure the latest version of base image is local
-  docker pull --platform=linux/${ARCH} gcr.io/teknoir/yolov7:${TAG}
+  docker pull --platform=linux/${ARCH} gcr.io/teknoir/yolov7:${BASE_TAG}
 
   # Build and set values specific to this model
   docker buildx build \
-    --build-arg=BASE_IMAGE=gcr.io/teknoir/yolov7:${TAG} \
+    --build-arg=BASE_IMAGE=gcr.io/teknoir/yolov7:${BASE_TAG} \
     --build-arg=MODEL_NAME=yolov7-vanilla \
     --build-arg=TRAINING_DATASET=cocoa \
     --build-arg=IMG_SIZE=640 \
@@ -40,29 +41,32 @@ build_and_push(){
     --build-arg=CLASS_NAMES_FILE=coco.names \
     --platform=linux/{ARCH} \
     --push \
-    -t gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-{ARCH}-${SHORT_SHA} \
+    -t gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG} \
     -f ./vanilla.Dockerfile .
 }
 
-build_and_push latest amd64
-build_and_push latest arm64
+build_and_push latest ${BRANCH_NAME}-amd64-${SHORT_SHA} amd64
+build_and_push latest ${BRANCH_NAME}-arm64-${SHORT_SHA} arm64
+build_and_push nv-latest ${BRANCH_NAME}-nv-amd64-${SHORT_SHA} amd64
+build_and_push nv-latest ${BRANCH_NAME}-nv-amd64-${SHORT_SHA} arm64
 
 create_manifest_and_push(){
   TAG=$1
+  VARIANT=$2
 
   docker manifest create \
     gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG} \
-    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-amd64-${SHORT_SHA} \
-    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-arm64-${SHORT_SHA}
+    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-${VARIANT}amd64-${SHORT_SHA} \
+    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-${VARIANT}arm64-${SHORT_SHA}
 
   docker manifest annotate \
     gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG} \
-    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-amd64-${SHORT_SHA} \
+    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-${VARIANT}amd64-${SHORT_SHA} \
     --os=linux
 
   docker manifest annotate \
     gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG} \
-    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-arm64-${SHORT_SHA} \
+    gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-${VARIANT}arm64-${SHORT_SHA} \
     --os=linux \
     --arch=arm64 \
     --variant=v8
@@ -70,8 +74,10 @@ create_manifest_and_push(){
   docker manifest push gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG}
 }
 
-create_manifest_and_push ${BRANCH_NAME}-${SHORT_SHA}
+create_manifest_and_push ${BRANCH_NAME}-${SHORT_SHA} ""
+create_manifest_and_push ${BRANCH_NAME}-nv-${SHORT_SHA} "nv-"
 
 if [ ${BRANCH_NAME} == 'main' ]; then
-  create_manifest_and_push latest
+  create_manifest_and_push latest ""
+  create_manifest_and_push nv-latest "nv-"
 fi

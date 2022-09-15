@@ -45,3 +45,4 @@ build_and_push(){
 
 build_and_push l4tr34.1.1
 build_and_push l4tr32.7.1
+build_and_push l4tr32.7.2
