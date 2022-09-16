@@ -1,5 +1,9 @@
 timeout: '18000s'
 
+options:
+  env:
+    - DOCKER_CLI_EXPERIMENTAL=enabled
+
 steps:
   - id: l4t_base
     name: gcr.io/teknoir/edgebuild
@@ -9,96 +13,21 @@ steps:
       - 'SHORT_SHA=${SHORT_SHA}'
     waitFor: ['-']
 
-#  - id: amd64
-#    name: gcr.io/cloud-builders/docker
-#    entrypoint: 'bash'
-#    env:
-#      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
-#    args:
-#      - -c
-#      - |
-#        set -eo pipefail
-##        mkdir -p ${{HOME}}/.docker/cli-plugins
-##        curl -Lo ${{HOME}}/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.9.1/buildx-v0.9.1.linux-amd64
-##        chmod +x ${{HOME}}/.docker/cli-plugins/docker-buildx && docker buildx install
-#        docker buildx build \
-#          --platform=linux/amd64 \
-#          --push \
-#          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} .
-#    waitFor: ['-']
-#
-#  - id: arm64
-#    name: gcr.io/cloud-builders/docker
-#    env:
-#      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
-#    entrypoint: 'bash'
-#    args:
-#      - -c
-#      - |
-#        set -eo pipefail
-#        docker buildx build \
-#          --platform=linux/arm64/v8 \
-#          --push \
-#          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA} .
-#    waitFor: ['-']
-
-#  - id: manifest
-#    name: gcr.io/cloud-builders/docker
-#    entrypoint: 'bash'
-#    env:
-#      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
-#    args:
-#      - -c
-#      - |
-#        set -eo pipefail
-#        docker manifest create \
-#        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA} \
-#        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
-#        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA}
-#
-#        docker manifest annotate \
-#        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA} \
-#        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
-#        --os=linux
-#
-#        docker manifest annotate \
-#        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA} \
-#        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA} \
-#        --os=linux \
-#        --arch=arm64 \
-#        --variant=v8
-#
-#        docker manifest push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA}
-#
-#        if [ ${BRANCH_NAME} == 'main' ]; then
-#          docker manifest create \
-#          gcr.io/${PROJECT_ID}/yolov7:latest \
-#          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
-#          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA}
-#
-#          docker manifest annotate \
-#          gcr.io/${PROJECT_ID}/yolov7:latest \
-#          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
-#          --os=linux
-#
-#          docker manifest annotate \
-#          gcr.io/${PROJECT_ID}/yolov7:latest \
-#          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA} \
-#          --os=linux \
-#          --arch=arm64 \
-#          --variant=v8
-#
-#          docker manifest push gcr.io/${PROJECT_ID}/yolov7:latest
-#        fi
-#    waitFor:
-#      - amd64
-#      - arm64
-
-  - id: nv-amd64
+  - id: initialize-buildx
     name: gcr.io/cloud-builders/docker
     entrypoint: 'bash'
-    env:
-      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
+    args:
+      - -c
+      - |
+        docker run --privileged linuxkit/binfmt:v0.8-amd64
+        docker buildx create --name mybuilder
+        docker buildx use mybuilder
+        docker buildx inspect --bootstrap
+    waitFor: ['-']
+
+  - id: amd64
+    name: gcr.io/cloud-builders/docker
+    entrypoint: 'bash'
     args:
       - -c
       - |
@@ -106,13 +35,13 @@ steps:
         docker buildx build \
           --platform=linux/amd64 \
           --push \
-          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} -f nv.Dockerfile .
-    waitFor: ['-']
+          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
+          -t gcr.io/${PROJECT_ID}/yolov7:amd64 \
+          .
+    waitFor: ['initialize-buildx']
 
-  - id: nv-arm64
+  - id: arm64
     name: gcr.io/cloud-builders/docker
-    env:
-      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
     entrypoint: 'bash'
     args:
       - -c
@@ -121,14 +50,94 @@ steps:
         docker buildx build \
           --platform=linux/arm64 \
           --push \
-          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} -f nv.Dockerfile .
-    waitFor: ['-']
+          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA} \
+          -t gcr.io/${PROJECT_ID}/yolov7:arm64 \
+          .
+    waitFor: ['initialize-buildx']
+
+  - id: manifest
+    name: gcr.io/cloud-builders/docker
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        docker manifest create \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA}
+
+        docker manifest annotate \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
+        --os=linux
+
+        docker manifest annotate \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA} \
+        --os=linux \
+        --arch=arm64 \
+        --variant=v8
+
+        docker manifest push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-${SHORT_SHA}
+
+        if [ ${BRANCH_NAME} == 'main' ]; then
+          docker manifest create \
+          gcr.io/${PROJECT_ID}/yolov7:latest \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA}
+
+          docker manifest annotate \
+          gcr.io/${PROJECT_ID}/yolov7:latest \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
+          --os=linux
+
+          docker manifest annotate \
+          gcr.io/${PROJECT_ID}/yolov7:latest \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-arm64-${SHORT_SHA} \
+          --os=linux \
+          --arch=arm64 \
+          --variant=v8
+
+          docker manifest push gcr.io/${PROJECT_ID}/yolov7:latest
+        fi
+    waitFor:
+      - amd64
+      - arm64
+
+  - id: nv-amd64
+    name: gcr.io/cloud-builders/docker
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        docker buildx build \
+          --platform=linux/amd64 \
+          --push \
+          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
+          -t gcr.io/${PROJECT_ID}/yolov7:nv-amd64 \
+          -f nv.Dockerfile .
+    waitFor: ['initialize-buildx']
+
+  - id: nv-arm64
+    name: gcr.io/cloud-builders/docker
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        docker buildx build \
+          --platform=linux/arm64 \
+          --push \
+          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \ 
+          -t gcr.io/${PROJECT_ID}/yolov7:nv-arm64 \ 
+          -f nv.Dockerfile .
+    waitFor: ['initialize-buildx']
 
   - id: nv-manifest
     name: gcr.io/cloud-builders/docker
     entrypoint: 'bash'
-    env:
-      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
     args:
       - -c
       - |
@@ -204,21 +213,21 @@ steps:
       - coco_names
       - yolov4_pt
 
-#  - id: yolov7_vanilla
-#    name: gcr.io/cloud-builders/docker
-#    env:
-#      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
-#      - 'PROJECT_ID=${PROJECT_ID}'
-#      - 'BRANCH_NAME=${BRANCH_NAME}'
-#      - 'SHORT_SHA=${SHORT_SHA}'
-#    entrypoint: 'bash'
-#    args:
-#      - -c
-#      - |
-#        set -eo pipefail
-#        ./build_vanilla.sh
-#    waitFor:
-#      - manifest
-#      - nv-manifest
-#      - coco_names
-#      - yolov4_pt
+  - id: yolov7_vanilla
+    name: gcr.io/cloud-builders/docker
+    env:
+      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
+      - 'PROJECT_ID=${PROJECT_ID}'
+      - 'BRANCH_NAME=${BRANCH_NAME}'
+      - 'SHORT_SHA=${SHORT_SHA}'
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        ./build_vanilla.sh
+    waitFor:
+      - manifest
+      - nv-manifest
+      - coco_names
+      - yolov4_pt
