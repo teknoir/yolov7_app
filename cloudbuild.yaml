@@ -32,11 +32,10 @@ steps:
       - -c
       - |
         set -eo pipefail
-        docker build \
-          --push \
-          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
-          -t gcr.io/${PROJECT_ID}/yolov7:amd64 \
-          .
+        docker build -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} .
+        docker tag gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} gcr.io/${PROJECT_ID}/yolov7:amd64
+        docker push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA}
+        docker push gcr.io/${PROJECT_ID}/yolov7:amd64
     waitFor: ['-']
 
   - id: arm64
@@ -111,11 +110,10 @@ steps:
       - -c
       - |
         set -eo pipefail
-        docker build \
-          --push \
-          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
-          -t gcr.io/${PROJECT_ID}/yolov7:nv-amd64 \
-          -f nv.Dockerfile .
+        docker build -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} -f nv.Dockerfile .
+        docker tag gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} gcr.io/${PROJECT_ID}/yolov7:nv-amd64
+        docker push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA}
+        docker push gcr.io/${PROJECT_ID}/yolov7:nv-amd64
     waitFor: ['-']
 
   - id: nv-arm64
