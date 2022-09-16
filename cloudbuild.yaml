@@ -32,13 +32,12 @@ steps:
       - -c
       - |
         set -eo pipefail
-        docker buildx build \
-          --platform=linux/amd64 \
+        docker build \
           --push \
           -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-amd64-${SHORT_SHA} \
           -t gcr.io/${PROJECT_ID}/yolov7:amd64 \
           .
-    waitFor: ['initialize-buildx']
+    waitFor: ['-']
 
   - id: arm64
     name: gcr.io/cloud-builders/docker
@@ -112,13 +111,12 @@ steps:
       - -c
       - |
         set -eo pipefail
-        docker buildx build \
-          --platform=linux/amd64 \
+        docker build \
           --push \
           -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
           -t gcr.io/${PROJECT_ID}/yolov7:nv-amd64 \
           -f nv.Dockerfile .
-    waitFor: ['initialize-buildx']
+    waitFor: ['-']
 
   - id: nv-arm64
     name: gcr.io/cloud-builders/docker
@@ -130,10 +128,10 @@ steps:
         docker buildx build \
           --platform=linux/arm64 \
           --push \
-          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \ 
-          -t gcr.io/${PROJECT_ID}/yolov7:nv-arm64 \ 
+          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
+          -t gcr.io/${PROJECT_ID}/yolov7:nv-arm64 \
           -f nv.Dockerfile .
-    waitFor: ['initialize-buildx']
+    waitFor: ['initialize-buildx', 'arm64']
 
   - id: nv-manifest
     name: gcr.io/cloud-builders/docker
@@ -195,24 +193,6 @@ steps:
     args: ['-qO', 'yolov7.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt']
     waitFor: ['-']
 
-  - id: l4t_yolov7_vanilla
-    name: gcr.io/cloud-builders/docker
-    env:
-      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
-      - 'PROJECT_ID=${PROJECT_ID}'
-      - 'BRANCH_NAME=${BRANCH_NAME}'
-      - 'SHORT_SHA=${SHORT_SHA}'
-    entrypoint: 'bash'
-    args:
-      - -c
-      - |
-        set -eo pipefail
-        ./build_l4t_vanilla.sh
-    waitFor:
-      - l4t_base
-      - coco_names
-      - yolov4_pt
-
   - id: yolov7_vanilla
     name: gcr.io/cloud-builders/docker
     env:
@@ -231,3 +211,22 @@ steps:
       - nv-manifest
       - coco_names
       - yolov4_pt
+
+  - id: l4t_yolov7_vanilla
+    name: gcr.io/cloud-builders/docker
+    env:
+      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
+      - 'PROJECT_ID=${PROJECT_ID}'
+      - 'BRANCH_NAME=${BRANCH_NAME}'
+      - 'SHORT_SHA=${SHORT_SHA}'
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        ./build_l4t_vanilla.sh
+    waitFor:
+      - l4t_base
+      - coco_names
+      - yolov4_pt
+      - yolov7_vanilla
