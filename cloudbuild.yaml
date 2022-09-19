@@ -19,7 +19,7 @@ steps:
     args:
       - -c
       - |
-        docker run --privileged linuxkit/binfmt:v0.8-amd64
+        docker run --privileged gcr.io/teknoir/binfmt-qemu:v0.8-v7.0.0
         docker buildx create --name mybuilder
         docker buildx use mybuilder
         docker buildx inspect --bootstrap
