@@ -40,6 +40,7 @@ build_and_push(){
     --build-arg=WEIGHTS_FILE=yolov7.pt \
     --build-arg=CLASS_NAMES_FILE=coco.names \
     --platform=linux/${ARCH} \
+    --label "git-commit=${SHORT_SHA}" \
     --push \
     -t gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG} \
     -f ./vanilla.Dockerfile .
