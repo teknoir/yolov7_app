@@ -13,7 +13,7 @@ RUN git clone https://github.com/WongKinYiu/yolov7.git /usr/src/app
 WORKDIR /usr/src/app
 
 RUN python3 -m pip install --upgrade pip wheel
-RUN python3 -m pip install --no-cache -r requirements.txt albumentations wandb gsutil notebook Pillow>=9.1.0 \
+RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt albumentations wandb gsutil notebook Pillow>=9.1.0 \
     'opencv-python-headless==4.5.5.62' \
     torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 

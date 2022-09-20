@@ -30,13 +30,13 @@ args = {
     'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
     'WEIGHTS': os.getenv("WEIGHTS", "datasets/yolo-pose/yolov7-w6-pose.pt"),
-    'TRAINING_DATASET': os.getenv("TRAINING_DATASET",""), # define from model config - better to use a registry
+    'TRAINING_DATASET': os.getenv("TRAINING_DATASET", ""),  # define from model config - better to use a registry
     'IMG_SIZE': int(os.getenv("IMG_SIZE", 960)),
     'STRIDE': int(os.getenv("STRIDE", 64)),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
     'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", 0.65)),
-    'DEVICE': os.getenv("DEVICE",'cpu'),  # cuda device, i.e. 0 or 0,1,2,3 or cpu
-    'MODEL_NAME': 'yolov7-keypoint' # define from model config - better to use a registry
+    'DEVICE': os.getenv("DEVICE", 'cpu'),  # cuda device, i.e. 0 or 0,1,2,3 or cpu
+    'MODEL_NAME': 'yolov7-keypoint'  # define from model config - better to use a registry
 }
 
 logger = logging.getLogger(args['NAME'])
@@ -59,6 +59,8 @@ def error_str(rc):
 
 def on_connect(_client, _userdata, _flags, rc):
     logger.info('Connected to MQTT broker {}'.format(error_str(rc)))
+    if rc == 0:
+        client.subscribe(args['MQTT_IN_0'], qos=0)
 
 
 def base64_encode(ndarray_image):
@@ -102,7 +104,6 @@ args["MODEL"] = model
 
 
 def detect(userdata, im0, image_mime):
-
     # Padded resize
     img = letterbox(im0, userdata["IMG_SIZE"], stride=userdata["STRIDE"], auto=True)[0]
 
@@ -115,23 +116,23 @@ def detect(userdata, im0, image_mime):
     print(pred[..., 4].max())
 
     # Apply NMS
-    pred = non_max_suppression_kpt(pred, 
-                                   userdata["CONF_THRESHOLD"], 
-                                   userdata["IOU_THRESHOLD"], 
-                                   nc=userdata['MODEL'].yaml['nc'], 
-                                   nkpt=userdata['MODEL'].yaml['nkpt'], 
+    pred = non_max_suppression_kpt(pred,
+                                   userdata["CONF_THRESHOLD"],
+                                   userdata["IOU_THRESHOLD"],
+                                   nc=userdata['MODEL'].yaml['nc'],
+                                   nkpt=userdata['MODEL'].yaml['nkpt'],
                                    kpt_label=True)
     with torch.no_grad():
         pred = output_to_keypoint(pred)
-    
+
     t2 = time.time()
 
     annotated = im0.copy()
 
-    gain = (img.shape[0]/im0.shape[0], img.shape[1]/im0.shape[1])
+    gain = (img.shape[0] / im0.shape[0], img.shape[1] / im0.shape[1])
 
     detections_kpt = []
-    
+
     for idx in range(pred.shape[0]):
         entry = {}
         scaled = []
@@ -139,22 +140,22 @@ def detect(userdata, im0, image_mime):
         conf = []
         for counter, val in enumerate(pred[idx, 7:].T):
             if counter % 3 == 0:
-                scaled.append(val/gain[1])
-                xc = val/gain[1]
+                scaled.append(val / gain[1])
+                xc = val / gain[1]
             elif counter % 3 == 1:
-                scaled.append(val/gain[0])
-                yc = val/gain[1]
-                keypoints.append([xc,yc])
+                scaled.append(val / gain[0])
+                yc = val / gain[1]
+                keypoints.append([xc, yc])
             else:
                 scaled.append(val)
                 conf.append(val)
-        
-        plot_skeleton_kpts(annotated, np.asarray(scaled), 3) #pred[idx, 7:].T, 3)
 
-        xmin, ymin = (pred[idx, 2]-pred[idx, 4]/2)/gain[1], (pred[idx, 3]-pred[idx, 5]/2)/gain[0]
-        xmax, ymax = (pred[idx, 2]+pred[idx, 4]/2)/gain[1], (pred[idx, 3]+pred[idx, 5]/2)/gain[0]
+        plot_skeleton_kpts(annotated, np.asarray(scaled), 3)  # pred[idx, 7:].T, 3)
 
-        entry['bounding_box'] = {'xmin':xmin, 'ymin':ymin, 'width':xmax-xmin, 'height':ymax-ymin}
+        xmin, ymin = (pred[idx, 2] - pred[idx, 4] / 2) / gain[1], (pred[idx, 3] - pred[idx, 5] / 2) / gain[0]
+        xmax, ymax = (pred[idx, 2] + pred[idx, 4] / 2) / gain[1], (pred[idx, 3] + pred[idx, 5] / 2) / gain[0]
+
+        entry['bounding_box'] = {'xmin': xmin, 'ymin': ymin, 'width': xmax - xmin, 'height': ymax - ymin}
         entry['keypoint_coordinates'] = keypoints
         entry['confidence_scores'] = conf
 
@@ -166,7 +167,7 @@ def detect(userdata, im0, image_mime):
                       color=(255, 0, 0),
                       thickness=1,
                       lineType=cv2.LINE_AA)
-    
+
     payload = {
         "model": userdata["MODEL_NAME"],
         "image": base64_encode(annotated),
@@ -197,6 +198,5 @@ client = mqtt.Client(args['NAME'], clean_session=True, userdata=args)
 client.on_connect = on_connect
 client.on_message = on_message
 client.connect(args['MQTT_SERVICE_HOST'], args['MQTT_SERVICE_PORT'])
-client.subscribe(args['MQTT_IN_0'], qos=1)
 # This runs the network code in a background thread and also handles reconnecting for you.
 client.loop_forever()

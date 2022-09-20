@@ -21,9 +21,27 @@ from utils.general import check_img_size, non_max_suppression, scale_coords, xyx
 from utils.torch_utils import select_device, time_synchronized
 from utils.plots import plot_one_box
 
+#  MQTT_IN_0="camera/images" MQTT_SERVICE_HOST=192.168.68.104 MQTT_SERVICE_PORT=31883 WEIGHTS=weights/best_weights.pt IMG_SIZE=640 CLASS_NAMES=ppe-bbox-clean-20220821000000146/dataset/object.names python3 app.py
 
-#  MQTT_IN_0="camera/images" MQTT_SERVICE_HOST=192.168.68.104 MQTT_SERVICE_PORT=31883 WEIGHTS=weights/best_weights.pt IMG_SIZE=640 CLASS_NAMES=ppe-bbox-clean-20220821000000146/dataset/object.names python3 app.py 
 
+# This app run Yolov7 deep learning networks.
+#
+# envs/args:
+# APP_NAME:             The app name, will be reflected in logs and client ids (default: yolov7)
+# MQTT_SERVICE_HOST:    MQTT broker host ip or hostname (default: mqtt.kube-system)
+# MQTT_SERVICE_PORT:    MQTT broker port (default: 1883)
+# WEIGHTS:
+# CLASS_NAMES:
+# CLASSES:
+# IMG_SIZE:             (default: 416)
+# CONF_THRESHOLD:       (default: 0.25)
+# IOU_THRESHOLD:        (default: 0.45)
+# DEVICE:               Select cuda device or cpu i.e. 0 or 0,1,2,3 or cpu  (default: cpu)
+# AUGMENTED_INFERENCE:
+# AGNOSTIC_NMS:
+# MODEL_NAME:           Model name for metadata (default: yolov7)
+# MQTT_VERSION:         MQTT protocol version 3 or 5 (default: 3)
+# MQTT_TRANSPORT:       MQTT protocol transport for version 5, tcp or websockets (default: tcp)
 
 APP_NAME = os.getenv('APP_NAME', 'yolov7')
 
@@ -43,21 +61,23 @@ args = {
     'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
     'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
     'MODEL_NAME': os.getenv("MODEL_NAME", 'yolov7'),  # define from model config - better to use a registry
+    'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),  # or 5
+    'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),  # or websockets
 }
 
 if args["AUGMENTED_INFERENCE"] == "":
     args["AUGMENTED_INFERENCE"] = False
 else:
-    args["AUGMENTED_INFERENCE"] = True    
+    args["AUGMENTED_INFERENCE"] = True
 
 if args["AGNOSTIC_NMS"] == "":
     args["AGNOSTIC_NMS"] = False
 else:
-    args["AGNOSTIC_NMS"] = True    
+    args["AGNOSTIC_NMS"] = True
 
 if args["CLASS_NAMES"] != "":
     class_names = []
-    with open(args["CLASS_NAMES"],"r",encoding='utf-8') as names_file:
+    with open(args["CLASS_NAMES"], "r", encoding='utf-8') as names_file:
         for line in names_file:
             if line != "" and line != "\n":
                 class_names.append(line.strip())
@@ -87,8 +107,16 @@ def error_str(rc):
     return '{}: {}'.format(rc, mqtt.error_string(rc))
 
 
-def on_connect(_client, _userdata, _flags, rc):
+def on_connect_v3(client, _userdata, _flags, rc):
     logger.info('Connected to MQTT broker {}'.format(error_str(rc)))
+    if rc == 0:
+        client.subscribe(args['MQTT_IN_0'], qos=0)
+
+
+def on_connect_v5(client, _userdata, _flags, rc, _props):
+    logger.info('Connected to MQTT broker {}'.format(error_str(rc)))
+    if rc == 0:
+        client.subscribe(args['MQTT_IN_0'], qos=0)
 
 
 def base64_encode(ndarray_image):
@@ -145,7 +173,6 @@ args["STRIDE"] = stride
 
 
 def detect(userdata, im0, image_mime):
-
     # Padded resize
     img = letterbox(im0, userdata["IMG_SIZE"], stride=userdata["STRIDE"])[0]
 
@@ -162,7 +189,6 @@ def detect(userdata, im0, image_mime):
     img_tensor = torch.from_numpy(img).to(device)
     img_tensor = img_tensor.half() if half else img_tensor.float()  # uint8 to fp16/32
     img_tensor /= 255.0  # 0 - 255 to 0.0 - 1.0
-
 
     # Inference
     t1 = time_synchronized()
@@ -192,29 +218,29 @@ def detect(userdata, im0, image_mime):
             for *xyxy, confidence, detected_label in reversed(det):
                 xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
                 conf = confidence.item()
-                
-                label_index = int(detected_label.item())                
-                label=None
+
+                label_index = int(detected_label.item())
+                label = None
                 if label_index >= 0 and label_index < len(userdata["CLASS_NAMES"]):
                     label = userdata["CLASS_NAMES"][label_index]
 
                 if label:
                     detections.append({'objId': object_id,
-                                        'id': object_id,
-                                        'det': det[:, :4].tolist()
-                                        'nx': img.shape[1],
-                                        'ny': img.shape[0],
-                                        'bbox': [xywh[0],xywh[1],xywh[2],xywh[3]],
-                                        'className': label,
-                                        'label': label,
-                                        'xmin': xywh[0],
-                                        'ymin': xywh[1],
-                                        'width': xywh[2],
-                                        'height': xywh[3],
-                                        'xmax': xywh[0]+xywh[2],
-                                        'ymax': xywh[1]+xywh[3],
-                                        'area': xywh[2]*xywh[3],
-                                        'score': conf})
+                                       'id': object_id,
+                                       'det': det[:, :4].tolist(),
+                                       'nx': img.shape[1],
+                                       'ny': img.shape[0],
+                                       'bbox': [xywh[0], xywh[1], xywh[2], xywh[3]],
+                                       'className': label,
+                                       'label': label,
+                                       'xmin': xywh[0],
+                                       'ymin': xywh[1],
+                                       'width': xywh[2],
+                                       'height': xywh[3],
+                                       'xmax': xywh[0] + xywh[2],
+                                       'ymax': xywh[1] + xywh[3],
+                                       'area': xywh[2] * xywh[3],
+                                       'score': conf})
                     # plot_one_box(xyxy, annotated, color=(0,255,0), label=f'{label} {conf:.2f}', line_thickness=1)
                     object_id += 1
 
@@ -230,7 +256,7 @@ def detect(userdata, im0, image_mime):
     payload["image"] = "%s... - truncated for logs" % payload["image"][0:32]
     logger.info(payload)
 
-    del payload, detections, img_tensor, gn, annotated, conf, label, xywh, xyxy, pred, img, t0, t1, t2, confidence, detected_label, label_index, det, im0 
+    del payload, detections, img_tensor, gn, annotated, conf, label, xywh, xyxy, pred, img, t0, t1, t2, confidence, detected_label, label_index, det, im0
     gc.collect()
 
 
@@ -245,10 +271,30 @@ def on_message(c, userdata, msg):
         exit(1)
 
 
-client = mqtt.Client(args['NAME'], clean_session=True, userdata=args)
-client.on_connect = on_connect
-client.on_message = on_message
-client.connect(args['MQTT_SERVICE_HOST'], args['MQTT_SERVICE_PORT'])
-client.subscribe(args['MQTT_IN_0'], qos=1)
+if args['MQTT_VERSION'] == '5':
+    client = mqtt.Client(client_id=args['NAME'],
+                         transport=args['MQTT_TRANSPORT'],
+                         protocol=mqtt.MQTTv5,
+                         userdata=args)
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
+    client.on_connect = on_connect_v5
+    client.on_message = on_message
+    client.connect(args['MQTT_SERVICE_HOST'],
+                   port=args['MQTT_SERVICE_PORT'],
+                   clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
+                   keepalive=60)
+
+if args['MQTT_VERSION'] == '3':
+    client = mqtt.Client(client_id=args['NAME'],
+                         transport=args['MQTT_TRANSPORT'],
+                         protocol=mqtt.MQTTv311,
+                         userdata=args,
+                         clean_session=True)
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
+    client.on_connect = on_connect_v3
+    client.on_message = on_message
+    client.connect(args['MQTT_SERVICE_HOST'], port=args['MQTT_SERVICE_PORT'], keepalive=60)
+
+client.enable_logger(logger=logger)
 # This runs the network code in a background thread and also handles reconnecting for you.
 client.loop_forever()

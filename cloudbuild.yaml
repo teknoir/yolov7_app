@@ -129,7 +129,7 @@ steps:
           -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
           -t gcr.io/${PROJECT_ID}/yolov7:nv-arm64 \
           -f nv.Dockerfile .
-    waitFor: ['initialize-buildx', 'arm64']
+    waitFor: ['initialize-buildx']
 
   - id: nv-manifest
     name: gcr.io/cloud-builders/docker
