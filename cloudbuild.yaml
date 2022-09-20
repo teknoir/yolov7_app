@@ -20,8 +20,7 @@ steps:
       - -c
       - |
         docker run --privileged gcr.io/teknoir/binfmt-qemu:v0.8-v7.0.0
-        docker buildx create --name mybuilder
-        docker buildx use mybuilder
+        docker buildx create --name mybuilder --use
         docker buildx inspect --bootstrap
     waitFor: ['-']
 
