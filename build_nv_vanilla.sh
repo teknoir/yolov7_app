@@ -46,8 +46,8 @@ build_and_push(){
     -f ./vanilla.Dockerfile .
 }
 
-build_and_push latest ${BRANCH_NAME}-amd64-${SHORT_SHA} amd64
-build_and_push latest ${BRANCH_NAME}-arm64-${SHORT_SHA} arm64
+build_and_push nv-latest ${BRANCH_NAME}-nv-amd64-${SHORT_SHA} amd64
+build_and_push nv-latest ${BRANCH_NAME}-nv-amd64-${SHORT_SHA} arm64
 
 create_manifest_and_push(){
   TAG=$1
@@ -73,8 +73,8 @@ create_manifest_and_push(){
   docker manifest push gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG}
 }
 
-create_manifest_and_push ${BRANCH_NAME}-${SHORT_SHA} ""
+create_manifest_and_push ${BRANCH_NAME}-nv-${SHORT_SHA} "nv-"
 
 if [ ${BRANCH_NAME} == 'main' ]; then
-  create_manifest_and_push latest ""
+  create_manifest_and_push nv-latest "nv-"
 fi

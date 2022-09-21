@@ -66,7 +66,7 @@
       args:
         chdir: /opt/teknoir/yolov7
       vars:
-        ansible_command_timeout: 6000
+        ansible_command_timeout: 18000
 
     - name: Get temporary registry access token
       local_action:

@@ -1,0 +1,42 @@
+timeout: '18000s'
+
+options:
+  env:
+    - DOCKER_CLI_EXPERIMENTAL=enabled
+
+steps:
+  - id: l4t_base
+    name: gcr.io/teknoir/edgebuild
+    env:
+      - 'PROJECT_ID=${PROJECT_ID}'
+      - 'BRANCH_NAME=${BRANCH_NAME}'
+      - 'SHORT_SHA=${SHORT_SHA}'
+    waitFor: ['-']
+
+  - id: coco_names
+    name: gcr.io/cloud-builders/wget
+    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
+    waitFor: ['-']
+
+  - id: yolov4_pt
+    name: gcr.io/cloud-builders/wget
+    args: ['-qO', 'yolov7.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt']
+    waitFor: ['-']
+
+  - id: l4t_yolov7_vanilla
+    name: gcr.io/cloud-builders/docker
+    env:
+      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
+      - 'PROJECT_ID=${PROJECT_ID}'
+      - 'BRANCH_NAME=${BRANCH_NAME}'
+      - 'SHORT_SHA=${SHORT_SHA}'
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        set -eo pipefail
+        ./build_l4t_vanilla.sh
+    waitFor:
+      - l4t_base
+      - coco_names
+      - yolov4_pt
