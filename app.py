@@ -21,9 +21,27 @@ from utils.general import check_img_size, non_max_suppression, scale_coords, xyx
 from utils.torch_utils import select_device, time_synchronized
 from utils.plots import plot_one_box
 
+#  MQTT_IN_0="camera/images" MQTT_SERVICE_HOST=192.168.68.104 MQTT_SERVICE_PORT=31883 WEIGHTS=weights/best_weights.pt IMG_SIZE=640 CLASS_NAMES=ppe-bbox-clean-20220821000000146/dataset/object.names python3 app.py
 
-#  MQTT_IN_0="camera/images" MQTT_SERVICE_HOST=192.168.68.104 MQTT_SERVICE_PORT=31883 WEIGHTS=weights/best_weights.pt IMG_SIZE=640 CLASS_NAMES=ppe-bbox-clean-20220821000000146/dataset/object.names python3 app.py 
 
+# This app run Yolov7 deep learning networks.
+#
+# envs/args:
+# APP_NAME:             The app name, will be reflected in logs and client ids (default: yolov7)
+# MQTT_SERVICE_HOST:    MQTT broker host ip or hostname (default: mqtt.kube-system)
+# MQTT_SERVICE_PORT:    MQTT broker port (default: 1883)
+# WEIGHTS:
+# CLASS_NAMES:
+# CLASSES:
+# IMG_SIZE:             (default: 416)
+# CONF_THRESHOLD:       (default: 0.25)
+# IOU_THRESHOLD:        (default: 0.45)
+# DEVICE:               Select cuda device or cpu i.e. 0 or 0,1,2,3 or cpu  (default: cpu)
+# AUGMENTED_INFERENCE:
+# AGNOSTIC_NMS:
+# MODEL_NAME:           Model name for metadata (default: yolov7)
+# MQTT_VERSION:         MQTT protocol version 3 or 5 (default: 3)
+# MQTT_TRANSPORT:       MQTT protocol transport for version 5, tcp or websockets (default: tcp)
 
 APP_NAME = os.getenv('APP_NAME', 'yolov7')
 
@@ -43,6 +61,8 @@ args = {
     'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
     'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
     'MODEL_NAME': os.getenv("MODEL_NAME", 'yolov7'),  # define from model config - better to use a registry
+    'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),  # or 5
+    'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),  # or websockets
 }
 
 if args["AUGMENTED_INFERENCE"] == "":
@@ -78,17 +98,32 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 logger.setLevel(logging.INFO)
 
-logger.info("TEKNOIR")
-logger.info("TEKNOIR")
-logger.info("TEKNOIR")
+logger.info("TΞꓘN01R")
+logger.info("TΞꓘN01R")
+logger.info("TΞꓘN01R")
 
 
 def error_str(rc):
     return '{}: {}'.format(rc, mqtt.error_string(rc))
 
 
-def on_connect(_client, _userdata, _flags, rc):
+def on_connect_v3(client, _userdata, _flags, rc):
     logger.info('Connected to MQTT broker {}'.format(error_str(rc)))
+    if rc == 0:
+        client.subscribe(args['MQTT_IN_0'], qos=0)
+
+
+def on_connect_v5(client, _userdata, _flags, rc, _props):
+    logger.info('Connected to MQTT broker {}'.format(error_str(rc)))
+    if rc == 0:
+        client.subscribe(args['MQTT_IN_0'], qos=0)
+
+
+def base64_encode(ndarray_image):
+    buff = BytesIO()
+    Image.fromarray(ndarray_image).save(buff, format='JPEG')
+    string_encoded = base64.b64encode(buff.getvalue()).decode("utf-8")
+    return f"data:image/jpeg;base64,{string_encoded}"
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -140,7 +175,6 @@ args["STRIDE"] = stride
 
 
 def detect(userdata, im0, image_mime):
-
     # Padded resize
     img = letterbox(im0, userdata["IMG_SIZE"], stride=userdata["STRIDE"])[0]
 
@@ -246,10 +280,30 @@ def on_message(c, userdata, msg):
         exit(1)
 
 
-client = mqtt.Client(args['NAME'], clean_session=True, userdata=args)
-client.on_connect = on_connect
-client.on_message = on_message
-client.connect(args['MQTT_SERVICE_HOST'], args['MQTT_SERVICE_PORT'])
-client.subscribe(args['MQTT_IN_0'], qos=1)
+if args['MQTT_VERSION'] == '5':
+    client = mqtt.Client(client_id=args['NAME'],
+                         transport=args['MQTT_TRANSPORT'],
+                         protocol=mqtt.MQTTv5,
+                         userdata=args)
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
+    client.on_connect = on_connect_v5
+    client.on_message = on_message
+    client.connect(args['MQTT_SERVICE_HOST'],
+                   port=args['MQTT_SERVICE_PORT'],
+                   clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY,
+                   keepalive=60)
+
+if args['MQTT_VERSION'] == '3':
+    client = mqtt.Client(client_id=args['NAME'],
+                         transport=args['MQTT_TRANSPORT'],
+                         protocol=mqtt.MQTTv311,
+                         userdata=args,
+                         clean_session=True)
+    client.reconnect_delay_set(min_delay=1, max_delay=120)
+    client.on_connect = on_connect_v3
+    client.on_message = on_message
+    client.connect(args['MQTT_SERVICE_HOST'], port=args['MQTT_SERVICE_PORT'], keepalive=60)
+
+client.enable_logger(logger=logger)
 # This runs the network code in a background thread and also handles reconnecting for you.
 client.loop_forever()
