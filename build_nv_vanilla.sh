@@ -41,13 +41,15 @@ build_and_push(){
     --build-arg=CLASS_NAMES_FILE=coco.names \
     --platform=linux/${ARCH} \
     --label "git-commit=${SHORT_SHA}" \
-    --push \
+    --load \
     -t gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG} \
     -f ./vanilla.Dockerfile .
+
+  docker push gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG}
 }
 
 build_and_push nv-latest ${BRANCH_NAME}-nv-amd64-${SHORT_SHA} amd64
-build_and_push nv-latest ${BRANCH_NAME}-nv-amd64-${SHORT_SHA} arm64
+build_and_push nv-latest ${BRANCH_NAME}-nv-arm64-${SHORT_SHA} arm64
 
 create_manifest_and_push(){
   TAG=$1
