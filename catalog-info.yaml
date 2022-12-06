@@ -1,0 +1,23 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  title: YOLO v7 App
+  name: yolov7_app
+  namespace: teknoir
+  description: YOLO v7 Object Detection app for multiple architectures in the Teknoir Platform
+  annotations:
+    'github.com/project-slug': teknoir/yolov7_app
+    'backstage.io/techdocs-ref': dir:./app/docs
+    'teknoir.org/productpage-ref': dir:./app/product-page
+    'teknoir.org/license-ref': dir:./app/license.yaml
+    'teknoir.org/manifest-ref': dir:./app/manifest.yaml
+  links:
+    - url: https://github.com/WongKinYiu/yolov7
+      title: Credits to original YOLO v7 implementation
+      icon: git
+spec:
+  type: app
+  owner: group:teknoir/teknoir
+  lifecycle: experimental
+  system: system:teknoir/object-detection
