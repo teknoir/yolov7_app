@@ -18,6 +18,6 @@ metadata:
       icon: git
 spec:
   type: app
-  owner: group:teknoir/teknoir
+  owner: group:teknoir/teknoir-public
   lifecycle: experimental
-  system: system:teknoir/object-detection
+  system: system:teknoir/computer-vision
