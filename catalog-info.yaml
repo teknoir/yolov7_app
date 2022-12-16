@@ -12,6 +12,8 @@ metadata:
     'teknoir.org/productpage-ref': dir:./app/product-page
     'teknoir.org/license-ref': dir:./app/license.yaml
     'teknoir.org/manifest-ref': dir:./app/manifest.yaml
+  tags:
+    - compute
   links:
     - url: https://github.com/WongKinYiu/yolov7
       title: Credits to original YOLO v7 implementation
