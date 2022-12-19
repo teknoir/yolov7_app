@@ -2,13 +2,14 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  title: YOLO v7 App
+  title: YOLO v7
   name: yolov7_app
   namespace: teknoir
   description: YOLO v7 Object Detection app for multiple architectures in the Teknoir Platform
   annotations:
     'github.com/project-slug': teknoir/yolov7_app
     'backstage.io/techdocs-ref': dir:./app/docs
+    'teknoir.org/productimage-ref': dir:./app/product-image
     'teknoir.org/productpage-ref': dir:./app/product-page
     'teknoir.org/license-ref': dir:./app/license.yaml
     'teknoir.org/manifest-ref': dir:./app/manifest.yaml
