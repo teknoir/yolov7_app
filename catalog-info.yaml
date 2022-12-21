@@ -21,6 +21,8 @@ metadata:
       icon: git
 spec:
   type: app
-  owner: group:teknoir/teknoir-public
+  owner: group:teknoir/public
   lifecycle: experimental
   system: system:teknoir/computer-vision
+  dependsOn:
+    - component:teknoir/gcr.io.teknoir.yolov7
