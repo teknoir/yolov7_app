@@ -1,7 +1,7 @@
 site_name: yolov7_app
 site_description: Documentation of Yolov7 App for the Teknoir platform
 repo_url: https://github.com/teknoir/yolov7_app
-edit_uri: edit/main/docs
+edit_uri: edit/main/app/docs
 docs_dir: './images'
 nav:
   - Home: index.md
