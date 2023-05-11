@@ -53,7 +53,6 @@ args = {
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
     'WEIGHTS': os.getenv("WEIGHTS", ""),
     'TRACK_CLASSES': os.getenv("TRACK_CLASSES","person,car"),
-    'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
     'CLASSES': os.getenv("CLASSES", ""),
     'IMG_SIZE': int(os.getenv("IMG_SIZE", 416)),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
@@ -89,9 +88,9 @@ if args["CLASS_NAMES"] != "":
             if line != "" and line != "\n":
                 class_names.append(line.strip())
     args["CLASS_NAMES"] = class_names
-else:
-    print("You must specify 'CLASS_NAMES'")
-    sys.exit(1)
+# else:
+#     print("You must specify 'CLASS_NAMES'")
+#     sys.exit(1)
 
 if args["CLASSES"] == "":
     args["CLASSES"] = None
