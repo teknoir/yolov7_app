@@ -21,6 +21,10 @@ from utils.general import check_img_size, non_max_suppression, scale_coords, xyx
 from utils.torch_utils import select_device, time_synchronized
 from utils.plots import plot_one_box
 
+from tracker.byte_tracker import BYTETracker
+# from utils.visualize import plot_tracking
+from tracker.multi_tracker_zoo import create_tracker
+
 #  MQTT_IN_0="camera/images" MQTT_SERVICE_HOST=192.168.68.104 MQTT_SERVICE_PORT=31883 WEIGHTS=weights/best_weights.pt IMG_SIZE=640 CLASS_NAMES=ppe-bbox-clean-20220821000000146/dataset/object.names python3 app.py
 
 
@@ -51,10 +55,9 @@ args = {
     'MQTT_SERVICE_PORT': int(os.getenv('MQTT_SERVICE_PORT', '1883')),
     'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
-    'WEIGHTS': os.getenv("WEIGHTS", ""),
+    'WEIGHTS': os.getenv("WEIGHTS", "yolov7-tiny.pt"),
     'TRACK_CLASSES': os.getenv("TRACK_CLASSES","person,car"),
-    'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
-    'CLASSES': os.getenv("CLASSES", ""),
+    'CLASS_NAMES': os.getenv("CLASS_NAMES", "coco.names"),
     'IMG_SIZE': int(os.getenv("IMG_SIZE", 416)),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
     'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", 0.45)),
@@ -89,12 +92,12 @@ if args["CLASS_NAMES"] != "":
             if line != "" and line != "\n":
                 class_names.append(line.strip())
     args["CLASS_NAMES"] = class_names
-else:
-    print("You must specify 'CLASS_NAMES'")
-    sys.exit(1)
+# else:
+#     print("You must specify 'CLASS_NAMES'")
+#     sys.exit(1)
 
-if args["CLASSES"] == "":
-    args["CLASSES"] = None
+# if args["CLASSES"] == "":
+#     args["CLASSES"] = None
 
 logger = logging.getLogger(args['NAME'])
 ch = logging.StreamHandler(sys.stdout)
