@@ -16,14 +16,13 @@ WORKDIR /usr/src/app
 RUN python3 -m pip install --upgrade pip wheel
 RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt albumentations wandb gsutil notebook Pillow>=9.1.0 \
     'opencv-python-headless==4.5.5.62'  \ 
-    setuptools==58.4 torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
-RUN python3 -m pip install numpy lap
+    torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
 RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt
 ADD app.py .
-ADD tracker ./tracker
-ADD coco.names .
+ADD object.names .
+
 CMD ["python3", "app.py"]
