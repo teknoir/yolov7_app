@@ -172,9 +172,6 @@ model.eval()
 
 args["MODEL"] = model
 args["STRIDE"] = stride
-
-# ByteTrack Tracker Init
-tracker = create_tracker(None, device, half)
     
 
 def detect(userdata, im0, image_mime):
