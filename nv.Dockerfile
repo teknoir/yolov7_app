@@ -16,7 +16,6 @@ ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
 ADD app.py .
-ADD object.names .
 RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt
 
 
