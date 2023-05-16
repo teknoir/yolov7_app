@@ -17,7 +17,7 @@ ENV WANDB_MODE=disabled
 
 ADD app.py .
 ADD object.names .
-RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt
+RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt
 
 
 CMD ["python3", "app.py"]
