@@ -51,7 +51,7 @@ args = {
     'MQTT_SERVICE_PORT': int(os.getenv('MQTT_SERVICE_PORT', '1883')),
     'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
-    'WEIGHTS': os.getenv("WEIGHTS", "yolov7-tiny.pt"),
+    'WEIGHTS': os.getenv("WEIGHTS", "yolov7.pt"),
     'CLASS_NAMES': os.getenv("CLASS_NAMES", "object.names"),
     'CLASSES': os.getenv("CLASSES", ""),
     'IMG_SIZE': int(os.getenv("IMG_SIZE", 416)),
