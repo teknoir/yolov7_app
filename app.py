@@ -52,7 +52,7 @@ args = {
     'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
     'WEIGHTS': os.getenv("WEIGHTS", "yolov7.pt"),
-    'CLASS_NAMES': os.getenv("CLASS_NAMES", "object.names"),
+    'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
     'CLASSES': os.getenv("CLASSES", ""),
     'IMG_SIZE': int(os.getenv("IMG_SIZE", 416)),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
