@@ -21,8 +21,8 @@ RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt albumentatio
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
-RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt
 ADD app.py .
 ADD object.names .
+RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt
 
 CMD ["python3", "app.py"]
