@@ -51,8 +51,8 @@ args = {
     'MQTT_SERVICE_PORT': int(os.getenv('MQTT_SERVICE_PORT', '1883')),
     'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
-    'WEIGHTS': os.getenv("WEIGHTS", ""),
-    'TRACK_CLASSES': os.getenv("TRACK_CLASSES","person,car"),
+    'WEIGHTS': os.getenv("WEIGHTS", "yolov7.pt"),
+    'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
     'CLASSES': os.getenv("CLASSES", ""),
     'IMG_SIZE': int(os.getenv("IMG_SIZE", 416)),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
@@ -70,12 +70,6 @@ if args["AUGMENTED_INFERENCE"] == "":
 else:
     args["AUGMENTED_INFERENCE"] = True    
 
-if args["TRACK_CLASSES"] == "":
-    args["TRACK_CLASSES"] = False
-else:
-    classes_to_track = args["TRACK_CLASSES"].split(",")   #testing and better error handling needed
-
-
 if args["AGNOSTIC_NMS"] == "":
     args["AGNOSTIC_NMS"] = False
 else:
@@ -88,9 +82,9 @@ if args["CLASS_NAMES"] != "":
             if line != "" and line != "\n":
                 class_names.append(line.strip())
     args["CLASS_NAMES"] = class_names
-# else:
-#     print("You must specify 'CLASS_NAMES'")
-#     sys.exit(1)
+else:
+    print("You must specify 'CLASS_NAMES'")
+    sys.exit(1)
 
 if args["CLASSES"] == "":
     args["CLASSES"] = None
@@ -178,9 +172,6 @@ model.eval()
 
 args["MODEL"] = model
 args["STRIDE"] = stride
-
-# ByteTrack Tracker Init
-tracker = create_tracker(None, device, half)
     
 
 def detect(userdata, im0, image_mime):
@@ -232,27 +223,10 @@ def detect(userdata, im0, image_mime):
 
                 gn = torch.tensor(img_tensor.shape)[[1, 0, 1, 0]]  # normalization gain whwh
 
-
                 object_id = 0
-                trk_id = -1
-                trk_conf = -1
 
                 for *xyxy, confidence, detected_label in reversed(det):
                     
-                    for class_ind in det[:,-1]:
-                        if names[int(class_ind)] in classes_to_track:
-
-                            tracks = tracker.update(det.cpu(), im0)
-                            if len(tracks) > 0:
-
-                                for j, (output) in enumerate(tracks):
-                                    trk_box_data = output[0:4]
-                                    trk_id = output[4]
-                                    trk_cls = output[5]
-                                    trk_conf = output[6]
-                                    # trk_label = names[int(trk_cls)]
-                                    
-
                     xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) ).view(-1).tolist()  # normalized xywh
                     conf = confidence.item()
                     
@@ -263,8 +237,6 @@ def detect(userdata, im0, image_mime):
 
                     if label:
                         detections.append({'objId': object_id,
-                                            'trkId': trk_id,
-                                            'trkconf': trk_conf,
                                             'id': object_id,
                                             'nx': im0.shape[1],
                                             'ny': im0.shape[0],
