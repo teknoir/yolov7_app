@@ -8,6 +8,7 @@ RUN apt-get update && \
     python3-dev \
     python3-pip
 
+ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN pip --version
 RUN mkdir -p /usr/src/app
 RUN git clone https://github.com/WongKinYiu/yolov7.git /usr/src/app
