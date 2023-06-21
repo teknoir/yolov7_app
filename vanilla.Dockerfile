@@ -25,4 +25,3 @@ ENV CLASS_NAMES=/usr/src/app/obj.names
 ADD $CLASS_NAMES_FILE $CLASS_NAMES
 
 ADD app.py /usr/src/app/app.py
-
