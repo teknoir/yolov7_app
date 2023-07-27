@@ -16,6 +16,16 @@ steps:
         docker buildx inspect --bootstrap
     waitFor: ['-']
 
+  - id: yolov7_classes
+    name: gcr.io/cloud-builders/wget
+    args: ['-qO', 'classes.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
+    waitFor: ['-']
+
+  - id: yolov7_pt
+    name: gcr.io/cloud-builders/wget
+    args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
+    waitFor: ['-']
+
   - id: amd64
     name: gcr.io/cloud-builders/docker
     entrypoint: 'bash'
@@ -27,7 +37,10 @@ steps:
         docker tag gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-amd64-${SHORT_SHA} gcr.io/${PROJECT_ID}/yolov7_with_img_stack:amd64
         docker push gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-amd64-${SHORT_SHA}
         docker push gcr.io/${PROJECT_ID}/yolov7_with_img_stack:amd64
-    waitFor: ['-']
+    waitFor:
+      - 'initialize-buildx'
+      - yolov7_pt
+      - yolov7_classes
 
   - id: arm64
     name: gcr.io/cloud-builders/docker
@@ -43,7 +56,11 @@ steps:
           -t gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-arm64-${SHORT_SHA} \
           -t gcr.io/${PROJECT_ID}/yolov7_with_img_stack:arm64 \
           .
-    waitFor: ['initialize-buildx']
+    waitFor: 
+      - 'initialize-buildx'
+      - yolov7_pt
+      - yolov7_classes
+
 
   - id: manifest
     name: gcr.io/cloud-builders/docker
@@ -95,15 +112,7 @@ steps:
       - amd64
       - arm64
 
-  - id: yolov7_classes
-    name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'classes.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
-    waitFor: ['-']
-
-  - id: yolov7_pt
-    name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
-    waitFor: ['-']
+  
 
   - id: yolov7_with_img_stack
     name: gcr.io/cloud-builders/docker
