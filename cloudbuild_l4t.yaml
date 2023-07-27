@@ -13,12 +13,12 @@ steps:
       - 'SHORT_SHA=${SHORT_SHA}'
     waitFor: ['-']
 
-  - id: coco_names
+  - id: classes_names
     name: gcr.io/cloud-builders/wget
     args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
     waitFor: ['-']
 
-  - id: yolov4_pt
+  - id: yolov7_tiny_pt
     name: gcr.io/cloud-builders/wget
     args: ['-qO', 'yolov7.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt']
     waitFor: ['-']
@@ -38,5 +38,5 @@ steps:
         ./build_l4t_vanilla.sh
     waitFor:
       - l4t_base
-      - coco_names
-      - yolov4_pt
+      - classes_names
+      - yolov7_tiny_pt
