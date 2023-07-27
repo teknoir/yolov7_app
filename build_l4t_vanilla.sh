@@ -14,12 +14,12 @@ build_and_push()
     --build-arg=MODEL_NAME=yolov7_with_img_stack \
     --build-arg=TRAINING_DATASET=cocoa \
     --build-arg=IMG_SIZE=416 \
-    --build-arg=WEIGHTS_FILE=yolov7-tiny.onnx \
+    --build-arg=WEIGHTS_FILE=yolov7-tiny.pt \
     --build-arg=CLASS_NAMES_FILE=classes.names \
     --platform=linux/arm64 \
     --label "git-commit=${SHORT_SHA}" \
     --push \
-    -t gcr.io/${PROJECT_ID}/yolov7-stacking-vanilla:${TAG}-${BRANCH_NAME}-${SHORT_SHA} \
+    -t gcr.io/${PROJECT_ID}/yolov7:${TAG}-${BRANCH_NAME}-${SHORT_SHA} \
     -f ./vanilla.Dockerfile .
 }
 
