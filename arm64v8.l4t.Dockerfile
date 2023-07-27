@@ -7,13 +7,15 @@ WORKDIR /usr/src/app
 
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN python3 -m pip install --upgrade pip wheel
-RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy torch pandas requests torchvision opencv-python-headless==4.5.5.64 tqdm PyYAML matplot seaborn scipy
+RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy torch pandas requests torchvision lap opencv-python-headless==4.5.5.64 tqdm PyYAML matplot seaborn scipy
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 ENV DEVICE=0
 
+COPY tracker tracker/   
 ADD app.py .
-RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt
+COPY yolov7-tiny.onnx .
+COPY classes.names .
 
 CMD ["python3", "app.py"]

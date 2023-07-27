@@ -24,6 +24,8 @@
           - --include=*.sh
           - --include=*.py
           - --include=*.Dockerfile
+          - --include=*.pt
+          - --include=*.names
           - --exclude=*
 
     - name: Get L4T Version

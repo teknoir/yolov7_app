@@ -2,7 +2,11 @@ datasets/
 inv/
 runs/
 __pycache__/
-
+mqtt_in_stack.py
+utils
+models
+images
+cfg
 # Repo-specific GitIgnore ----------------------------------------------------------------------------------------------
 *.jpg
 *.jpeg
