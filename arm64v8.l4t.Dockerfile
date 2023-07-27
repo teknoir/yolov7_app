@@ -15,7 +15,7 @@ ENV DEVICE=0
 
 COPY tracker tracker/   
 ADD app.py .
-COPY yolov7-tiny.onnx .
+COPY yolov7-tiny.pt .
 COPY classes.names .
 
 CMD ["python3", "app.py"]

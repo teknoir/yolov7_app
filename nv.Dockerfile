@@ -17,7 +17,7 @@ ENV WANDB_MODE=disabled
 
 COPY tracker tracker/
 COPY app.py .
-COPY yolov7-tiny.onnx .
+COPY yolov7-tiny.pt .
 COPY classes.names .
 
 CMD ["python3", "app.py"]
