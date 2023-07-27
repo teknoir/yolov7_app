@@ -19,6 +19,7 @@
         rsync_opts:
           - --include=models/
           - --include=utils/
+          - --include=tracker/
           - --include=*.yaml
           - --include=*.txt
           - --include=*.sh
