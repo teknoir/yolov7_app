@@ -13,9 +13,9 @@ ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 ENV DEVICE=0
 
-COPY tracker tracker/   
-ADD app.py .
+COPY app.py .
 COPY yolov7-tiny.pt .
 COPY classes.names .
+COPY ./tracker tracker/   
 
 CMD ["python3", "app.py"]
