@@ -15,16 +15,6 @@ steps:
         docker buildx create --name mybuilder --use
         docker buildx inspect --bootstrap
     waitFor: ['-']
-  
-  - id: yolov7_classes
-    name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'classes.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
-    waitFor: ['-']
-
-  - id: yolov7_pt
-    name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
-    waitFor: ['-']
 
   - id: nv-amd64
     name: gcr.io/cloud-builders/docker
@@ -33,14 +23,11 @@ steps:
       - -c
       - |
         set -eo pipefail
-        docker build -t gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} -f nv.Dockerfile --label "git-commit=${SHORT_SHA}" .
-        docker tag gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} gcr.io/${PROJECT_ID}/yolov7_with_img_stack:nv-amd64
-        docker push gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-amd64-${SHORT_SHA}
-        docker push gcr.io/${PROJECT_ID}/yolov7_with_img_stack:nv-amd64
-    waitFor:
-      - 'initialize-buildx'
-      - yolov7_pt
-      - yolov7_classes
+        docker build -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} -f nv.Dockerfile --label "git-commit=${SHORT_SHA}" .
+        docker tag gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} gcr.io/${PROJECT_ID}/yolov7:nv-amd64
+        docker push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA}
+        docker push gcr.io/${PROJECT_ID}/yolov7:nv-amd64
+    waitFor: ['-']
 
   - id: nv-arm64
     name: gcr.io/cloud-builders/docker
@@ -53,13 +40,10 @@ steps:
           --platform=linux/arm64 \
           --push \
           --label "git-commit=${SHORT_SHA}" \
-          -t gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
-          -t gcr.io/${PROJECT_ID}/yolov7_with_img_stack:nv-arm64 \
+          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
+          -t gcr.io/${PROJECT_ID}/yolov7:nv-arm64 \
           -f nv.Dockerfile .
-    waitFor: 
-      - 'initialize-buildx'
-      - yolov7_pt
-      - yolov7_classes
+    waitFor: ['initialize-buildx']
 
   - id: nv-manifest
     name: gcr.io/cloud-builders/docker
@@ -69,51 +53,59 @@ steps:
       - |
         set -eo pipefail
         docker manifest create \
-        gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-arm64-${SHORT_SHA}
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA}
 
         docker manifest annotate \
-        gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
         --os=linux
 
         docker manifest annotate \
-        gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
+        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
         --os=linux \
         --arch=arm64 \
         --variant=v8
 
-        docker manifest push gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-${SHORT_SHA}
+        docker manifest push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA}
 
         if [ ${BRANCH_NAME} == 'main' ]; then
           docker manifest create \
-          gcr.io/${PROJECT_ID}/yolov7_with_img_stack:nv-latest \
-          gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
-          gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-arm64-${SHORT_SHA}
+          gcr.io/${PROJECT_ID}/yolov7:nv-latest \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA}
 
           docker manifest annotate \
-          gcr.io/${PROJECT_ID}/yolov7_with_img_stack:nv-latest \
-          gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
+          gcr.io/${PROJECT_ID}/yolov7:nv-latest \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
           --os=linux
 
           docker manifest annotate \
-          gcr.io/${PROJECT_ID}/yolov7_with_img_stack:nv-latest \
-          gcr.io/${PROJECT_ID}/yolov7_with_img_stack:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
+          gcr.io/${PROJECT_ID}/yolov7:nv-latest \
+          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
           --os=linux \
           --arch=arm64 \
           --variant=v8
 
-          docker manifest push gcr.io/${PROJECT_ID}/yolov7_with_img_stack:nv-latest
+          docker manifest push gcr.io/${PROJECT_ID}/yolov7:nv-latest
         fi
     waitFor:
       - nv-amd64
       - nv-arm64
 
-  
+  - id: coco_names
+    name: gcr.io/cloud-builders/wget
+    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
+    waitFor: ['-']
 
-  - id: yolov7_with_img_stack
+  - id: yolov4_pt
+    name: gcr.io/cloud-builders/wget
+    args: ['-qO', 'yolov7.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt']
+    waitFor: ['-']
+
+  - id: yolov7_vanilla
     name: gcr.io/cloud-builders/docker
     env:
       - 'DOCKER_CLI_EXPERIMENTAL=enabled'
@@ -128,5 +120,5 @@ steps:
         ./build_nv_vanilla.sh
     waitFor:
       - nv-manifest
-      - yolov7_classes
-      - yolov7_pt
+      - coco_names
+      - yolov4_pt
