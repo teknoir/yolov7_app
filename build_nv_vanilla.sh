@@ -5,25 +5,6 @@ export SHORT_SHA=${SHORT_SHA:-"head"}
 export BRANCH_NAME=${BRANCH_NAME:-"local"}
 export PROJECT_ID=${PROJECT_ID:-"teknoir"}
 
-# Get vanilla model and COCOA names file
-download_cache(){
-  FILE=$1
-  URL=$2
-  echo "Download ${FILE}"
-
-  if [ -f "${FILE}" ]; then
-    echo "${FILE} exists."
-  else
-    echo "Download ${FILE} from ${URL}"
-    curl -fsSL --progress-bar -o ${FILE} ${URL} || {
-      error "curl -fsSL --progress-bar -o ${FILE} ${URL}" "${FUNCNAME}" "${LINENO}"
-      exit 1
-    }
-  fi
-}
-download_cache coco.names https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names
-download_cache yolov7.pt https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt
-
 build_and_push(){
   BASE_TAG=$1
   TAG=$2
