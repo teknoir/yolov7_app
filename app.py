@@ -6,17 +6,15 @@ import time
 import torch
 import base64
 import logging
-import warnings
 import numpy as np
 from PIL import Image
 from io import BytesIO
 import paho.mqtt.client as mqtt
-warnings.filterwarnings('ignore')
 from tracker.byte_tracker import BYTETracker
 from utils.torch_utils import select_device
 from models.experimental import attempt_load
 from utils.general import non_max_suppression,check_img_size
-from memory_profiler import profile
+
 APP_NAME = os.getenv('APP_NAME', 'object_tracking_app_teknoir')
 args = {
         'NAME': APP_NAME,
@@ -242,12 +240,6 @@ def track_and_outpayload(pred,base64_images_list,im0_list,cm0_list):
                                     'area': x2*y2, 
                                     'label': args["CLASS_NAMES"][class_index],
                                 }) 
-                xyxy_rescaled = [
-                                    int(tracked_object[0] * im0_list[ind].shape[1] / args["IMG_SIZE"]),
-                                    int(tracked_object[1] * im0_list[ind].shape[0] / args["IMG_SIZE"]),
-                                    int(tracked_object[2] * im0_list[ind].shape[1] / args["IMG_SIZE"]),
-                                    int(tracked_object[3] * im0_list[ind].shape[0] / args["IMG_SIZE"]),
-                                ]
 
             new_camera={"id": cm0_list[ind], 
                         "name": "name_{}".format(cm0_list[ind])}
@@ -271,7 +263,6 @@ def track_and_outpayload(pred,base64_images_list,im0_list,cm0_list):
 Input: input payload that will comes from camera app
 Output: output payload that will include all the info of detection and tracking
 '''
-@profile
 def on_message(c, userdata, msg):
     try:
         logger.info("... Message Recieved ...")
