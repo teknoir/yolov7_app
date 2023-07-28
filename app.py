@@ -16,7 +16,7 @@ from tracker.byte_tracker import BYTETracker
 from utils.torch_utils import select_device
 from models.experimental import attempt_load
 from utils.general import non_max_suppression,check_img_size
-
+from memory_profiler import profile
 APP_NAME = os.getenv('APP_NAME', 'object_tracking_app_teknoir')
 args = {
         'NAME': APP_NAME,
@@ -111,19 +111,6 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, np.array):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
-
-
-def plot_one_box(x, img, color=None, label=None, line_thickness=3):
-    tl = line_thickness or round(0.002 * (img.shape[0] + img.shape[1]) / 2) + 1
-    color = (0,255,0)
-    c1, c2 = (int(x[0]), int(x[1])), (int(x[2]), int(x[3]))
-    cv2.rectangle(img, c1, c2, color, thickness=tl, lineType=cv2.LINE_AA)
-    if label:
-        tf = max(tl - 1, 1)
-        t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
-        c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
-        cv2.rectangle(img, c1, c2, color, -1, cv2.LINE_AA)
-        cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [225, 255, 255], thickness=tf, lineType=cv2.LINE_AA)
 
 
 #...Object Tracking Class responsible to do object tracking on detections...
@@ -261,7 +248,6 @@ def track_and_outpayload(pred,base64_images_list,im0_list,cm0_list):
                                     int(tracked_object[2] * im0_list[ind].shape[1] / args["IMG_SIZE"]),
                                     int(tracked_object[3] * im0_list[ind].shape[0] / args["IMG_SIZE"]),
                                 ]
-                plot_one_box(xyxy_rescaled, im0_list[ind], label=str(track_id), line_thickness=2)
 
             new_camera={"id": cm0_list[ind], 
                         "name": "name_{}".format(cm0_list[ind])}
@@ -275,8 +261,6 @@ def track_and_outpayload(pred,base64_images_list,im0_list,cm0_list):
             out_payload["results"][0]["data"].append(new_data)
             out_payload["results"][0]["objects"].append(new_object)
 
-            cv2.imwrite("Image_out_{}.png".format(ind),im0_list[ind])
-
         else:
             logger.info("... No Det...Skipping the Tracking ...!")
     return out_payload
@@ -287,6 +271,7 @@ def track_and_outpayload(pred,base64_images_list,im0_list,cm0_list):
 Input: input payload that will comes from camera app
 Output: output payload that will include all the info of detection and tracking
 '''
+@profile
 def on_message(c, userdata, msg):
     try:
         logger.info("... Message Recieved ...")
@@ -299,6 +284,7 @@ def on_message(c, userdata, msg):
 
         out_msg = json.dumps(output_payload, cls=NumpyEncoder)
         client.publish(userdata['MQTT_OUT_0'], out_msg)
+        
         
         for result in output_payload["results"]:
             for obj in result["data"]:
