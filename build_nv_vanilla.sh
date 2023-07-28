@@ -19,7 +19,7 @@ build_and_push(){
     --build-arg=TRAINING_DATASET=cocoa \
     --build-arg=IMG_SIZE=640 \
     --build-arg=WEIGHTS_FILE=yolov7.pt \
-    --build-arg=CLASS_NAMES_FILE=coco.names \
+    --build-arg=CLASS_NAMES_FILE=classes.names \
     --platform=linux/${ARCH} \
     --label "git-commit=${SHORT_SHA}" \
     --load \

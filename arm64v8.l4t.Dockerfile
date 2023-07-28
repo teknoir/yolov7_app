@@ -12,8 +12,10 @@ RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy torch pandas lap re
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 ENV DEVICE=0
+
 COPY app.py .
 COPY yolov7-tiny.pt .
 COPY classes.names .
 ADD tracker/ /usr/src/app/tracker/ 
+
 CMD ["python3", "app.py"]
