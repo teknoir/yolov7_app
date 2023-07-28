@@ -15,12 +15,12 @@ steps:
 
   - id: classes_names
     name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
+    args: ['-qO', 'classes.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
     waitFor: ['-']
 
   - id: yolov7_tiny_pt
     name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'yolov7.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt']
+    args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
     waitFor: ['-']
 
   - id: l4t_yolov7_vanilla
