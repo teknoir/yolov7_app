@@ -12,7 +12,7 @@ RUN pip uninstall -y Pillow torchtext  # torch torchvision
 RUN pip install --no-cache -r requirements.txt paho.mqtt albumentations wandb gsutil notebook Pillow>=9.1.0 \
     'opencv-python-headless==4.5.5.62' \
     --extra-index-url https://download.pytorch.org/whl/cu113
-RUN pip install numpy==1.20.3
+
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
