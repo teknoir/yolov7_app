@@ -24,8 +24,8 @@ args = {
         'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
         'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
         
-        'WEIGHTS': os.getenv("WEIGHTS", "E:\Weights\yolov7-tiny.pt"),
-        'CLASS_NAMES': os.getenv("CLASS_NAMES", "classes.names"),
+        'WEIGHTS': os.getenv("WEIGHTS", ""),
+        'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
         'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT","person,car")),
 
         'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
@@ -271,6 +271,7 @@ def track(detections,cm0_list):
     for index, detection in enumerate(detections): 
         current_tracker = trackers.get_tracker(cm0_list[index])
         tracked_objects = current_tracker.update(torch.tensor(detection))
+        del current_tracker
         tracked_objects_list.append(tracked_objects)
     return tracked_objects_list
     
@@ -293,7 +294,10 @@ def create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list):
         result["data"]["height"]=int(im0_imgsz_list[index][0])
         result["objects"]=[]
 
+        print("Image : ",index+1)
+        print("----------------")
         for x1,x2,y1,y2,id,score in tracked_object:
+            print("Track Id : ",id)
             result["objects"].append({'trk_id':id,                                      
                                 'x1':x1,
                                 'y1':y1,
@@ -306,6 +310,7 @@ def create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list):
                                 'confidence': score, 
                                 'area': x2*y2, 
                                 }) 
+        print("----------------")
         output_payload.append(result)
     return output_payload
 
@@ -319,6 +324,8 @@ def on_message(c, userdata, msg):
     try:
         logger.info("... Message Recieved ...")
         recieved_message = msg.payload.decode("utf-8", "ignore")
+        print(recieved_message)
+
         try:
             camera_data = json.loads(recieved_message)
         except json.JSONDecodeError as e:
@@ -338,7 +345,7 @@ def on_message(c, userdata, msg):
 
         #... Creation of Output Payload ...
         output_payload = create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list)
-        print(output_payload)
+        # print(output_payload)
         
         #... Send Message through MQTT ...
         msg_to_send=json.dumps(output_payload, cls=NumpyEncoder)
