@@ -24,9 +24,9 @@ args = {
         'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
         'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
         
-        'WEIGHTS': os.getenv("WEIGHTS", "E:\Weights\yolov7-tiny.pt"),
-        'CLASS_NAMES': os.getenv("CLASS_NAMES", "classes.names"),
-        'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT","person,car")),
+        'WEIGHTS': os.getenv("WEIGHTS", ""),
+        'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
+        'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT","")),
 
         'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
         'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", 640)),
