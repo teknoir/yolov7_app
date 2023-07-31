@@ -26,7 +26,7 @@ args = {
         
         'WEIGHTS': os.getenv("WEIGHTS", ""),
         'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
-        'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT","person,car")),
+        'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT","")),
 
         'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
         'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", 640)),
@@ -293,11 +293,7 @@ def create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list):
         result["data"]["width"]=int(im0_imgsz_list[index][1])
         result["data"]["height"]=int(im0_imgsz_list[index][0])
         result["objects"]=[]
-
-        print("Image : ",index+1)
-        print("----------------")
         for x1,x2,y1,y2,id,score in tracked_object:
-            print("Track Id : ",id)
             result["objects"].append({'trk_id':id,                                      
                                 'x1':x1,
                                 'y1':y1,
@@ -310,7 +306,6 @@ def create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list):
                                 'confidence': score, 
                                 'area': x2*y2, 
                                 }) 
-        print("----------------")
         output_payload.append(result)
     return output_payload
 
@@ -325,7 +320,7 @@ def on_message(c, userdata, msg):
         logger.info("... Message Recieved ...")
         recieved_message = msg.payload.decode("utf-8", "ignore")
         print(recieved_message)
-
+        
         try:
             camera_data = json.loads(recieved_message)
         except json.JSONDecodeError as e:
@@ -345,7 +340,7 @@ def on_message(c, userdata, msg):
 
         #... Creation of Output Payload ...
         output_payload = create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list)
-        # print(output_payload)
+        print(output_payload)
         
         #... Send Message through MQTT ...
         msg_to_send=json.dumps(output_payload, cls=NumpyEncoder)
