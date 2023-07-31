@@ -1,11 +1,8 @@
-import cv2
-import numpy as np
-import scipy
 import lap
-from scipy.spatial.distance import cdist
-
+import scipy
+import numpy as np
 from tracker import kalman_filter
-import time
+from scipy.spatial.distance import cdist
 
 def merge_matches(m1, m2, shape):
     O,P,Q = shape
@@ -57,13 +54,13 @@ def ious(atlbrs, btlbrs):
 
     :rtype ious np.ndarray
     """
-    ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
+    ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float)
     if ious.size == 0:
         return ious
 
-    ious = bbox_ious(
-        np.ascontiguousarray(atlbrs, dtype=np.float32),
-        np.ascontiguousarray(btlbrs, dtype=np.float32)
+    ious = bbox_overlaps(
+        np.ascontiguousarray(atlbrs, dtype=np.float),
+        np.ascontiguousarray(btlbrs, dtype=np.float)
     )
 
     return ious
@@ -117,13 +114,13 @@ def embedding_distance(tracks, detections, metric='cosine'):
     :return: cost_matrix np.ndarray
     """
 
-    cost_matrix = np.zeros((len(tracks), len(detections)), dtype=np.float32)
+    cost_matrix = np.zeros((len(tracks), len(detections)), dtype=np.float)
     if cost_matrix.size == 0:
         return cost_matrix
-    det_features = np.asarray([track.curr_feat for track in detections], dtype=np.float32)
+    det_features = np.asarray([track.curr_feat for track in detections], dtype=np.float)
     #for i, track in enumerate(tracks):
         #cost_matrix[i, :] = np.maximum(0.0, cdist(track.smooth_feat.reshape(1,-1), det_features, metric))
-    track_features = np.asarray([track.smooth_feat for track in tracks], dtype=np.float32)
+    track_features = np.asarray([track.smooth_feat for track in tracks], dtype=np.float)
     cost_matrix = np.maximum(0.0, cdist(track_features, det_features, metric))  # Nomalized features
     return cost_matrix
 
@@ -179,8 +176,7 @@ def fuse_score(cost_matrix, detections):
     fuse_cost = 1 - fuse_sim
     return fuse_cost
 
-
-def bbox_ious(boxes, query_boxes):
+def bbox_overlaps(boxes,query_boxes):
     """
     Parameters
     ----------
@@ -193,7 +189,7 @@ def bbox_ious(boxes, query_boxes):
     N = boxes.shape[0]
     K = query_boxes.shape[0]
     overlaps = np.zeros((N, K), dtype=np.float32)
-    
+
     for k in range(K):
         box_area = (
             (query_boxes[k, 2] - query_boxes[k, 0] + 1) *

@@ -7,7 +7,7 @@ utils
 models
 images
 cfg
-app__mo.py
+app_local.py
 # Repo-specific GitIgnore ----------------------------------------------------------------------------------------------
 *.jpg
 *.jpeg

@@ -1,13 +1,6 @@
-# vim: expandtab:ts=4:sw=4
 import numpy as np
 import scipy.linalg
 
-
-"""
-Table for the 0.95 quantile of the chi-square distribution with N degrees of
-freedom (contains values for N=1, ..., 9). Taken from MATLAB/Octave's chi2inv
-function and used as Mahalanobis gating threshold.
-"""
 chi2inv95 = {
     1: 3.8415,
     2: 5.9915,
@@ -51,11 +44,6 @@ class KalmanFilter(object):
         # the model. This is a bit hacky.
         self._std_weight_position = 1. / 20
         self._std_weight_velocity = 1. / 160
-
-    def calculate_centroid(self,bbox):
-        cX = int((bbox[0] + bbox[2]) / 2.0)
-        cY = int((bbox[1] + bbox[3]) / 2.0)
-        return (cX,cY)
 
     def initiate(self, measurement):
         """Create track from unassociated measurement.

@@ -1,8 +1,8 @@
 import os
 import sys
 import cv2
-import json
 import time
+import json
 import torch
 import base64
 import logging
@@ -10,36 +10,44 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 import paho.mqtt.client as mqtt
-from tracker.byte_tracker import BYTETracker
+from utils.datasets import letterbox
 from utils.torch_utils import select_device
+from tracker.byte_tracker import BYTETracker
 from models.experimental import attempt_load
 from utils.general import non_max_suppression,check_img_size
 
-APP_NAME = os.getenv('APP_NAME', 'object_tracking_app_teknoir')
+APP_NAME = os.getenv('APP_NAME', 'object_detection_and_tracking_app_teknoir')
+
 args = {
         'NAME': APP_NAME,
         'MQTT_SERVICE_HOST': os.getenv('MQTT_SERVICE_HOST', '127.0.0.1'),
         'MQTT_SERVICE_PORT': int(os.getenv('MQTT_SERVICE_PORT', '1883')),
         'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
         'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
-        'WEIGHTS': os.getenv("WEIGHTS", "E:\\Weights\\yolov7-tiny.pt"),
+        
+        'WEIGHTS': os.getenv("WEIGHTS", "E:\Weights\yolov7-tiny.pt"),
         'CLASS_NAMES': os.getenv("CLASS_NAMES", "classes.names"),
-        'CLASSES_TO_DET': os.getenv("CLASSES_TO_DET",[0,2]),
+        'CLASSES_TO_DETECT': os.getenv("CLASSES_TO_DETECT",[1,3,5]),
+
         'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
         'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", 640)),
         'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", 0.45)),
+        'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
+        'AUGMENTED_INFERENCE':os.getenv("AUGMENTED_INFERENCE",""),
+        
+        'DEVICE': os.getenv("DEVICE", 'cpu'),  
+        'MODEL_NAME': os.getenv("MODEL_NAME", "object_detection_and_tracking_model"),  
+        'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
+        'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
+
         "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", 0.5)),
         "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", 0.8)),
         "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", 30)),
         "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", 10)),
-        'DEVICE': os.getenv("DEVICE", 'cpu'),  
-        'MODEL_NAME': os.getenv("MODEL_NAME", "object_tracking_app_teknoir"),  
-        'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
-        'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
     }
 
 
-#... Initialization of Logger ...
+#.....Initialization of Logger.....
 logger = logging.getLogger(args['NAME'])
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.INFO)
@@ -49,21 +57,7 @@ logger.addHandler(ch)
 logger.setLevel(logging.INFO)
 logger.info("TΞꓘN01R")
 logger.info("... App is Setting Up ...")
-
-
-#... Classes Names Configuration ....
-if args["CLASS_NAMES"] != "":
-    class_names = []
-    with open(args["CLASS_NAMES"],"r",encoding='utf-8') as names_file:
-        for line in names_file:
-            if line != "" and line != "\n":
-                class_names.append(line.strip())
-    args["CLASS_NAMES"] = class_names
-else:
-    logger.info("You must specify 'CLASS_NAMES'")
-    logger.info("App Exit!")
-    sys.exit(1)
-logger.info("... Classes Names Configured ...")
+#..................................
 
 
 def error_str(rc):
@@ -78,23 +72,6 @@ def on_connect_v5(client, _userdata, _flags, rc, _props):
     print('Connected to MQTT broker {}'.format(error_str(rc)))
     if rc == 0:
         client.subscribe(args['MQTT_IN_0'], qos=0)
-
-
-#... Setting Up Device & Model
-logger.info("... Setting Up Device ...")
-device=select_device(args["DEVICE"])
-logger.info("... Using {} Device ...".format(device))
-half=device.type != 'cpu'
-model = attempt_load(args["WEIGHTS"], map_location=device)
-logger.info("... Model Initialized ...")
-names = model.module.names if hasattr(model, 'module') else model.names
-if half:
-    model.half()
-
-
-#... Check Image Size ...
-stride = int(model.stride.max())
-imgsz = check_img_size(args["IMG_SIZE"], s=stride)
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -111,11 +88,60 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-#...Object Tracking Class responsible to do object tracking on detections...
+if args["AUGMENTED_INFERENCE"] == "":
+    args["AUGMENTED_INFERENCE"] = False
+else:
+    args["AUGMENTED_INFERENCE"] = True
+
+if args["AGNOSTIC_NMS"] == "":
+    args["AGNOSTIC_NMS"] = False
+else:
+    args["AGNOSTIC_NMS"] = True
+
+
+#....Classes Names Configuration.....
+if args["CLASS_NAMES"] != "":
+    class_names = []
+    with open(args["CLASS_NAMES"],"r",encoding='utf-8') as names_file:
+        for line in names_file:
+            if line != "" and line != "\n":
+                class_names.append(line.strip())
+    args["CLASS_NAMES"] = class_names
+else:
+    logger.info("You must specify 'CLASS_NAMES'")
+    logger.info("App Exit!")
+    sys.exit(1)
+logger.info("... Classes Names Configured ...")
+#....................................
+
+
+#.....Setting Up Device & Model......
+logger.info("... Setting Up Device ...")
+device=select_device(args["DEVICE"])
+logger.info("... Using {} Device ...".format(device))
+half=device.type != 'cpu'
+model=attempt_load(args["WEIGHTS"], map_location=args["DEVICE"])
+logger.info("... Model Initialized ...")
+stride=int(model.stride.max())
+imgsz=check_img_size(args["IMG_SIZE"], s=stride)
+if isinstance(imgsz, (list, tuple)):
+    assert len(imgsz) == 2
+    imgsz[0]=check_img_size(imgsz[0], s=stride)
+    imgsz[1]=check_img_size(imgsz[1], s=stride)
+else:
+    imgsz=check_img_size(imgsz, s=stride)
+names=model.module.names if hasattr(model, 'module') else model.names
+if half:
+    model.half()
+stride = int(model.stride.max())
+#...................................
+
+
 '''
-__init__: this is responsible to Initialize tracker
-_new_tracker: this function will create new tracker object
-get_tracker: this function will check if tracker exist, If not then create new
+Object Tracking Class responsible to do object tracking on detections...
+@__init__: this is responsible to Initialize tracker
+@_new_tracker: this function will create new tracker object
+@get_tracker: this function will check if tracker exist, If not then create new
 otherwise return old based on camera id
 '''
 class ObjectTrackers:
@@ -131,10 +157,9 @@ class ObjectTrackers:
                             frame_rate=self.frame_rate,
                             track_thresh=self.threshold,
                             match_thresh=self.match_threshold)   
-        
+    
     def get_tracker(self, camera_id):
         if camera_id not in self._trackers:
-            logger.info("... New Object Tracker Initialized ...")
             self._trackers[camera_id]=self._new_tracker()
         return self._trackers[camera_id]   
     
@@ -142,154 +167,174 @@ logger.info("... Tracking Class Object Initialized ...")
 trackers=ObjectTrackers(args)
 
 
-#...Stacking Function is responsible to merge the list of images for multiprocessing at once...
 '''
-Input: base64 images coming from camera, input width and height of model
-Output: refined model input and refine images list
+Stacking Function is responsible to merge the list of images for multiprocessing at once
+@Input: base64 images coming from camera, image size
+@Output: refined model input and refine images list
 '''
-def stack_images(base64_images_list,model_imh,model_imw):
-    im0_list = []    
-    im0_m_list = []
-    for im0_ind in range(0,len(base64_images_list)):
-        _, image_base64 = base64_images_list[im0_ind].split(',', 1)
+def stack_images(im0m_list):
+    '''
+    np.stack =  take list of images and stack them togather, output format is (5 (no of images), x, y, 3 (img channels))
+    np.flip = take a stack and flip it, so that last index will become first index ([0,1,....,n])->([n,n-1,.....0])
+    np.transpose =  take a list of flipped array and converts row to col and col to rows.
+    '''
+    model_input = np.transpose(np.flip(np.stack(im0m_list), 3), (0, 3, 1, 2)).astype(np.float32) / 255.0
+    return model_input
+
+
+'''
+PreProcessing Function, which is responsible to preprocess data
+@Input: Camera Data, which will include input data from camera and will include, base64 imgs and camera_ids
+@Output: refine model_input, original images list and cameras ids list
+'''
+def preprocess(input_payload):
+    im0m_list = []                              #...list to store resize images, for stacking, this will be removed after stacking operation..
+    cm0_list = []                               #...list to store camera ids for output payload creation
+    bs64_list = []                              #...list to store each camera image base64str for output payload creation  
+    ts_list = []                                #...list to store each camera image timestamp for output payload creation
+    im0_imgsz_list = []                         #...list to store each camera image size for output payload creation                
+
+
+    #... Looop over each camera data
+    for each_camera_data in input_payload: 
+
+        '''@Research We will need to implementation condition, If images or someother data will be null
+        in input, then code will display message instead of throwing error or crash or exit the app'''
+
+        timestamp = each_camera_data["timestamp"]
+        ts_list.append(timestamp)
+
+        bs64_img = each_camera_data["images"] 
+        bs64_list.append(bs64_img)
+        
+        cm0 = each_camera_data["camera_id"]
+        cm0_list.append(cm0)
+        
+        #... Converting to Original Image
+        _, image_base64 = bs64_img.split(',', 1)
         image = Image.open(BytesIO(base64.b64decode(image_base64)))
-        im0_list.append(np.array(image))
-        im0_res =cv2.resize(np.array(image), (model_imw,model_imh))
-        im0_res = cv2.cvtColor(im0_res,cv2.COLOR_BGR2RGB)        
-        im0_m_list.append(im0_res)
-    model_input = np.transpose(np.flip(np.stack(im0_m_list), 3), (0, 3, 1, 2)).astype(np.float32) / 255.0
-    del im0_res,im0_m_list
-    return model_input,im0_list
+        image = cv2.cvtColor(np.array(image),cv2.COLOR_BGR2RGB)
+        im0_imgsz_list.append(image.shape)
 
+        #... Resized Image
+        image = letterbox(image, imgsz, stride=stride)[0]   
+        im0m_list.append(image)
+    
+    model_input = stack_images(im0m_list)
 
-#...PreProcessing Function, which is responsible to preprocess data....
+    #... This list will not be used anymore, better to delete
+    del im0m_list
+
+    return model_input,cm0_list,ts_list,im0_imgsz_list,bs64_list
+    
+
 '''
-Input: Camera Data, which will include input data from camera and will include, base64 imgs and camera_ids
-Output: refine model_input, original images list and cameras ids list
-'''
-def preprocess(camera_data):
-    if "images" not in camera_data:
-        logging.info("Input not include images data!")
-        logging.info("App Exit!")
-        sys.exit(1)
-    elif "camera_id" not in camera_data:
-        logging.info("Input not include camera_id data!")
-        logging.info("App Exit!")
-        sys.exit(1)
-    else:
-        base64_images_list = camera_data["images"] 
-        cm0_list = camera_data["camera_id"]
-        model_input,im0_list = stack_images(base64_images_list,imgsz,imgsz)
-        return model_input,im0_list,cm0_list,base64_images_list
-
-
-#...Detect Function, which is responsible to detect the objects....
-'''
-Input: model input, which will be a list of tensors, to process multiple images at once
-Output: predictions data, which can be used for tracking and outpayload
+Detect Function, which is responsible to detect the objects
+@Input: model input, which will be a list of tensors, to process multiple images at once
+@Output: predictions data, which can be used for tracking and outpayload
 '''
 def detect(model_input):
     model_input = torch.tensor(model_input, device=device)
     with torch.no_grad():
         model_output = model(model_input)[0]
-        pred = non_max_suppression(model_output, 
+        #...Applied NMS to model output
+        detections = non_max_suppression(model_output, 
                                     args["CONF_THRESHOLD"],
                                     args["IOU_THRESHOLD"],
-                                    classes=args["CLASSES_TO_DET"], 
-                                    agnostic=False)
-        del model_input,
-        del model_output
-    return pred
+                                    classes=None, 
+                                    agnostic=args["AGNOSTIC_NMS"])
+        #... This variable is not needed anymore, becuase now everywork will be based on pred variable
+        del model_input,model_output    
+    return detections
 
 
-#...track_and_outpayload Function, which is responsible to track the objects and payload creation....
 '''
-Input: Predictions from detection model and cameras_data list
-Output: tracked objects by the tracker, which will include all output payload and generate out payload
+track Function, which is responsible to track the objects
+@Input: Predictions from detection model, and cameras_data list
+@Output: tracked objects by the tracker, it can include trackid, track_bbox etc.
 '''
-def track_and_outpayload(pred,base64_images_list,im0_list,cm0_list):
-    out_payload = {"model": {"name": "yolov7","version": "0.1","id": "stack_0.1",},
-                    "results": [{"timestamp": [],"camera": [],"data": [],"objects": []}]}
-    for ind, det in enumerate(pred):
-        if len(det):
-            new_object = []
-            im0_list[ind] = cv2.cvtColor(im0_list[ind],cv2.COLOR_BGR2RGB) 
-            current_tracker = trackers.get_tracker(cm0_list[ind])
-            tracked_objects = current_tracker.update(torch.tensor(det))
-            for tracked_object in tracked_objects: 
-                x1 = tracked_object[0]                                              
-                y1 = tracked_object[1]                                              
-                x2 = tracked_object[2]                                              
-                y2 = tracked_object[3]   
-                x_center = (x1 + x2) / 2
-                y_center = (y1 + y2) / 2
-                track_id = tracked_object[4]                                       
-                class_index = int(tracked_object[5])                            
-                score = tracked_object[6]  
-                
-                new_object.append({'trk_id':track_id,                                      
-                                    'x1':x1,
-                                    'y1':y1,
-                                    'x2':x2,
-                                    'y2':y2, 
-                                    'xcenter': x_center,
-                                    'ycenter': y_center,
-                                    'width': (x2-x1),
-                                    'height': (y2-y1),
-                                    'confidence': score, 
-                                    'area': x2*y2, 
-                                    'label': args["CLASS_NAMES"][class_index],
+def track(detections,cm0_list):
+    tracked_objects_list = []
+    for index, detection in enumerate(detections): 
+        current_tracker = trackers.get_tracker(cm0_list[index])
+        tracked_objects = current_tracker.update(torch.tensor(detection))
+        tracked_objects_list.append(tracked_objects)
+    return tracked_objects_list
+    
+
+'''
+create_payload Function, which is responsible to create an output payload
+@Input: Predictions from detection model, and cameras_data list
+@Output: tracked objects by the tracker, it can include trackid, track_bbox etc.
+'''
+def create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list):
+    output_payload = []
+    for index,tracked_object in enumerate(tracked_objects_list):
+        result={}
+        result["timestamp"]=ts_list[index]
+  
+        result["data"] = {}
+        # result["data"]["image"]=bs64_list[index]
+        result["data"]["image"]=""
+        result["data"]["width"]=int(im0_imgsz_list[index][1])
+        result["data"]["height"]=int(im0_imgsz_list[index][0])
+        result["objects"]=[]
+
+        for x1,x2,y1,y2,id,score in tracked_object:
+            result["objects"].append({'trk_id':id,                                      
+                                'x1':x1,
+                                'y1':y1,
+                                'x2':x2,
+                                'y2':y2, 
+                                'xcenter': (x1+x2)/2,
+                                'ycenter': (y1+y2)/2,
+                                'width': (x2-x1),
+                                'height': (y2-y1),
+                                'confidence': score, 
+                                'area': x2*y2, 
                                 }) 
-
-            new_camera={"id": cm0_list[ind], 
-                        "name": "name_{}".format(cm0_list[ind])}
-            
-            new_data=   {"image": base64_images_list[ind],
-                         "width": im0_list[ind].shape[1], 
-                         "height": im0_list[ind].shape[0]}
-            
-            out_payload["results"][0]["timestamp"].append(time.time())
-            out_payload["results"][0]["camera"].append(new_camera)
-            out_payload["results"][0]["data"].append(new_data)
-            out_payload["results"][0]["objects"].append(new_object)
-
-        else:
-            logger.info("... No Det...Skipping the Tracking ...!")
-    return out_payload
+        output_payload.append(result)
+    return output_payload
 
 
-#...On_message Function, which is responsible to send and recieve messages from MQTT...
 '''
-Input: input payload that will comes from camera app
-Output: output payload that will include all the info of detection and tracking
+On_message Function, which is responsible to send and recieve messages from MQTT...
+@Input: input payload that will comes from camera app
+@Output: output payload that will include all the info of detection and tracking
 '''
 def on_message(c, userdata, msg):
     try:
         logger.info("... Message Recieved ...")
-        input_payload = str(msg.payload.decode("utf-8", "ignore"))                            
-        camera_data = json.loads(input_payload)  
-        
-        model_input,im0_list,cm0_list,base64_images_list = preprocess(camera_data)  
-        pred = detect(model_input)
-        output_payload = track_and_outpayload(pred,base64_images_list,im0_list,cm0_list)
+        recieved_message = msg.payload.decode("utf-8", "ignore")
+        try:
+            camera_data = json.loads(recieved_message)
+        except json.JSONDecodeError as e:
+            print("Error decoding JSON:", e)
+            exit(1)
 
-        out_msg = json.dumps(output_payload, cls=NumpyEncoder)
-        client.publish(userdata['MQTT_OUT_0'], out_msg)
-        
-        
-        for result in output_payload["results"]:
-            for obj in result["data"]:
-                if "image" in obj:
-                    obj["image"] = obj["image"][:32]
-        
+        input_payload = camera_data["payload"] 
+
+        #... Preprocess the Input Payload ...
+        model_input,cm0_list,ts_list,im0_imgsz_list,bs64_list = preprocess(input_payload) 
+
+        #... Detect Objects in Images ... 
+        detections = detect(model_input)
+
+        #... Track Objects in Images ...
+        tracked_objects_list = track(detections,cm0_list)
+
+        #... Creation of Output Payload ...
+        output_payload = create_payload(tracked_objects_list,ts_list,im0_imgsz_list,bs64_list)
         print(output_payload)
-        del input_payload,camera_data,model_input,im0_list,cm0_list,pred
-        del output_payload
-    
+        
+        #... Send Message through MQTT ...
+        msg_to_send=json.dumps(output_payload, cls=NumpyEncoder)
+        client.publish(userdata['MQTT_OUT_0'], msg_to_send)
+
     except Exception as e:
         print('Error:', e)
         exit(1)
-     
+
 
 if args['MQTT_VERSION'] == '5':
     client = mqtt.Client(client_id=args['NAME'],

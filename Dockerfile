@@ -21,7 +21,7 @@ WORKDIR /usr/src/app
 RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt albumentations wandb gsutil notebook Pillow>=9.1.0 \
     'opencv-python-headless==4.5.5.62'  \ 
     torch lap torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
-
+RUN pip install numpy==1.20.3
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 ENV DEVICE=0
