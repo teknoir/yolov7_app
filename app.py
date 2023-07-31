@@ -26,7 +26,7 @@ args = {
         
         'WEIGHTS': os.getenv("WEIGHTS", "E:\Weights\yolov7-tiny.pt"),
         'CLASS_NAMES': os.getenv("CLASS_NAMES", "classes.names"),
-        'CLASSES_TO_DETECT': os.getenv("CLASSES_TO_DETECT",[1,3,5]),
+        'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT","person,car")),
 
         'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
         'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", 640)),
@@ -87,6 +87,7 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
+#....Resetting the User Arguments ....
 if args["AUGMENTED_INFERENCE"] == "":
     args["AUGMENTED_INFERENCE"] = False
 else:
@@ -97,8 +98,6 @@ if args["AGNOSTIC_NMS"] == "":
 else:
     args["AGNOSTIC_NMS"] = True
 
-
-#....Classes Names Configuration.....
 if args["CLASS_NAMES"] != "":
     class_names = []
     with open(args["CLASS_NAMES"],"r",encoding='utf-8') as names_file:
@@ -111,7 +110,21 @@ else:
     logger.info("App Exit!")
     sys.exit(1)
 logger.info("... Classes Names Configured ...")
-#....................................
+
+if args["CLASSES_TO_DETECT"] == "":
+    args["CLASSES_TO_DETECT"] = None
+else:
+    if len(args["CLASSES_TO_DETECT"])==1:
+        args["CLASSES_TO_DETECT"] = args["CLASS_NAMES"] .index(args["CLASSES_TO_DETECT"])
+    else:
+        args["CLASSES_TO_DETECT"] = args["CLASSES_TO_DETECT"].split(",")
+        cls_ids = []
+        for index,cls_name in enumerate(args["CLASSES_TO_DETECT"]):
+            cls_id = args["CLASS_NAMES"].index(cls_name)
+            cls_ids.append(cls_id)
+        args["CLASSES_TO_DETECT"] = cls_ids
+        del cls_ids
+#........................
 
 
 #.....Setting Up Device & Model......
@@ -237,10 +250,11 @@ def detect(model_input):
     with torch.no_grad():
         model_output = model(model_input)[0]
         #...Applied NMS to model output
+        print(args["CLASSES_TO_DETECT"])
         detections = non_max_suppression(model_output, 
                                     args["CONF_THRESHOLD"],
                                     args["IOU_THRESHOLD"],
-                                    classes=None, 
+                                    classes=args["CLASSES_TO_DETECT"], 
                                     agnostic=args["AGNOSTIC_NMS"])
         #... This variable is not needed anymore, becuase now everywork will be based on pred variable
         del model_input,model_output    
