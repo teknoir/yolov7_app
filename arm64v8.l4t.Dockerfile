@@ -8,19 +8,10 @@ WORKDIR /usr/src/app
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN python3 -m pip install --upgrade pip wheel
 
-#....PyTorch and TorchVision for Jetson Devices...
-RUN wget https://nvidia.box.com/shared/static/fjtbno0vpo676a25cgvuqc1wty0fkkg6.whl \
-            -O torch-1.10.0-cp36-cp36m-linux_aarch64.whl
-RUN python3 -m pip install torch-1.10.0-cp36-cp36m-linux_aarch64.whl
-
-RUN git clone --branch v0.11.1 https://github.com/pytorch/vision torchvision
-RUN cd torchvision 
-RUN python3 setup.py install 
-##################################################
-
 RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy pandas lap \
                                     requests opencv-python-headless==4.5.5.64 \
-                                    tqdm PyYAML matplot seaborn scipy
+                                    tqdm PyYAML matplot seaborn scipy \
+                                    torch torchvision
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
