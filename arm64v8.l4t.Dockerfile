@@ -9,17 +9,13 @@ ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN python3 -m pip install --upgrade pip wheel
 
 #....PyTorch and TorchVision for Jetson Devices...
-RUN apt-get install -y --no-install-recommends libjpeg-dev libopenblas-dev libopenmpi-dev \
-                                                libomp-dev libavcodec-dev libavformat-dev libswscale-dev
-RUN pip install scikit-build setuptools==58.3.0 Cython gdown future
+RUN wget https://nvidia.box.com/shared/static/fjtbno0vpo676a25cgvuqc1wty0fkkg6.whl \
+            -O torch-1.10.0-cp36-cp36m-linux_aarch64.whl
+RUN python3 -m pip install torch-1.10.0-cp36-cp36m-linux_aarch64.whl
 
-RUN gdown https://drive.google.com/uc?id=1AQQuBS9skNk1mgZXMp0FmTIwjuxc81WY
-RUN pip install torch-1.11.0a0+gitbc2c6ed-cp38-cp38-linux_aarch64.whl
-RUN rm torch-1.11.0a0+gitbc2c6ed-cp38-cp38-linux_aarch64.whl    
-
-RUN gdown https://drive.google.com/uc?id=1BaBhpAizP33SV_34-l3es9MOEFhhS1i2
-RUN pip install torchvision-0.12.0a0+9b5a3fe-cp38-cp38-linux_aarch64.whl
-RUN rm torchvision-0.12.0a0+9b5a3fe-cp38-cp38-linux_aarch64.whl
+RUN git clone --branch v0.11.1 https://github.com/pytorch/vision torchvision
+RUN cd torchvision 
+RUN python3 setup.py install 
 ##################################################
 
 RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy pandas lap \
