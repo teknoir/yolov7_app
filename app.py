@@ -342,7 +342,7 @@ def on_message(c, userdata, msg):
         
         # Track Objects in Images
         tracked_objects_list = track(detections,cm0_list)
-        
+        print(tracked_objects_list)
         #... Creation of Output Payload ...
         # output_payload = create_payload(tracked_objects_list,ts_list,im0m_list)
         # print(output_payload)
