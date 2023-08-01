@@ -264,12 +264,15 @@ def track(detections,cm0_list):
     return tracked_objects_list
     
 
-'''
-create_payload Function, which is responsible to create an output payload
-@Input: Predictions from detection model, and cameras_data list
-@Output: tracked objects by the tracker, it can include trackid, track_bbox etc.
-'''
+
+
 def create_payload(tracked_objects_list,ts_list,im0_list,bs64_list):
+    """create_payload Function, which is responsible to create an output payload
+    Args: 
+        Predictions from detection model, and cameras_data list
+    Returns: 
+        tracked objects by the tracker, it can include trackid, track_bbox etc.
+    """
     output_payload = []
     for index,tracked_object in enumerate(tracked_objects_list):
         result={}
