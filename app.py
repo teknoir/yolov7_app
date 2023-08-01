@@ -219,11 +219,11 @@ def stack_images(im0m_list):
     # np.transpose =  take a list of flipped array and converts row to col and col to rows.
     
     model_input = np.transpose(np.flip(np.stack(im0m_list), 3), (0, 3, 1, 2)).astype(np.float32) / 255.0
-    
+    torch.cuda.empty_cache() 
     return model_input
 
 
-def detect(model_input,cm0_list):
+def detect(model_input):
     """Detect function, which is responsible to detect the objects
     Args: 
         model input, which will be a list of tensors, to process multiple images at once
@@ -246,6 +246,7 @@ def detect(model_input,cm0_list):
                                         args["AGNOSTIC_NMS"])
  
     print("CLASSES TO DETECT : ",args["CLASSES_TO_DETECT"])
+    torch.cuda.empty_cache() 
     return detections
 
 
@@ -263,6 +264,7 @@ def track(detections,cm0_list):
         current_tracker = trackers.get_tracker(cm0_list[index])
         tracked_objects = current_tracker.update(torch.tensor(detection),"test")
         tracked_objects_list.append(tracked_objects)
+    torch.cuda.empty_cache() 
     return tracked_objects_list
     
 
@@ -303,6 +305,7 @@ def create_payload(tracked_objects_list,ts_list,im0_list,bs64_list):
             # plot_one_box(xyxy_rescaled, im0_list[index], color=(255,144,31), label=str(id), line_thickness=2)
 
         output_payload.append(result)
+    torch.cuda.empty_cache() 
     return output_payload
 
 
@@ -362,10 +365,10 @@ def on_message(c, userdata, msg):
             im0m_list.append(image)
 
         # Stack Images 
-        model_input = stack_images(im0m_list,cm0_list)
+        model_input = stack_images(im0m_list)
 
         # Detect Objects in Images 
-        detections = detect(model_input,cm0_list)
+        detections = detect(model_input)
         
         # Track Objects in Images
         tracked_objects_list = track(detections,cm0_list)
@@ -377,6 +380,7 @@ def on_message(c, userdata, msg):
 
         for item in output_payload:
             print(item["objects"])
+        torch.cuda.empty_cache() 
 
         del cm0_list,ts_list,im0m_list,im0_list,bs64_list
         del model_input,detections,tracked_objects_list
