@@ -235,8 +235,8 @@ class BYTETracker(object):
             output = []
             tid = t.track_id
             tlwh = np.expand_dims(t.tlwh, axis=0)
-            xyxy = np.squeeze(xywh2xyxy(tlwh), axis=0)
-            output.extend(xyxy)
+            # xyxy = np.squeeze(xywh2xyxy(tlwh), axis=0)
+            output.extend(tlwh)
             output.append(tid)
             output.append(t.score)
             output_tracks.append(output)

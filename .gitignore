@@ -32,7 +32,7 @@ app_local.py
 *.cfg
 !setup.cfg
 !cfg/yolov3*.cfg
-
+mqtt_in_stack_video.py
 storage.googleapis.com
 runs/*
 data/*
