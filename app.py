@@ -11,6 +11,7 @@ import paho.mqtt.client as mqtt
 from utils.torch_utils import select_device
 from tracker.byte_tracker import BYTETracker
 from models.experimental import attempt_load
+from utils.plots import plot_one_box
 from utils.general import non_max_suppression,check_img_size
 
 APP_NAME = os.getenv('APP_NAME', 'object_detection_and_tracking_app_teknoir')
@@ -137,7 +138,7 @@ class NumpyEncoder(json.JSONEncoder):
     Functions:
         default: the function will encode output paylaod to json
     """
-    def default(self, obj):
+    def default(self, obj,):
         """This function will convert the output payload to Json Encoded data
         args:
             output payload object
@@ -229,16 +230,19 @@ def detect(model_input):
     Returns: 
         predictions data, which can be used for tracking and outpayload
     """
-    # convert the input of model to torch tensors
-    model_input = torch.tensor(model_input, device=device)
-    # get detection from model
-    model_output = model(model_input)[0]
-    # Apply Non Maximum Suppression (NMS)
-    detections = non_max_suppression(model_output,
-                                    args["CONF_THRESHOLD"],
-                                    args["IOU_THRESHOLD"],
-                                    args["CLASSES_TO_DETECT"],
-                                    args["AGNOSTIC_NMS"])
+    
+    #...Efficent for memory optimization, it will remove every model iteration tree.
+    with torch.no_grad():
+        # convert the input of model to torch tensors
+        model_input = torch.tensor(model_input, device=device)
+        # get detection from model
+        model_output = model(model_input)[0]
+        # Apply Non Maximum Suppression (NMS)
+        detections = non_max_suppression(model_output,
+                                        args["CONF_THRESHOLD"],
+                                        args["IOU_THRESHOLD"],
+                                        args["CLASSES_TO_DETECT"],
+                                        args["AGNOSTIC_NMS"])
     print("CLASSES TO DETECT : ",args["CLASSES_TO_DETECT"])
     return detections
 
@@ -255,7 +259,7 @@ def track(detections,cm0_list):
     # loop over detections
     for index, detection in enumerate(detections):
         current_tracker = trackers.get_tracker(cm0_list[index])
-        tracked_objects = current_tracker.update(torch.tensor(detection))
+        tracked_objects = current_tracker.update(torch.tensor(detection),"test")
         tracked_objects_list.append(tracked_objects)
     return tracked_objects_list
     
@@ -265,28 +269,38 @@ create_payload Function, which is responsible to create an output payload
 @Input: Predictions from detection model, and cameras_data list
 @Output: tracked objects by the tracker, it can include trackid, track_bbox etc.
 '''
-# def create_payload(tracked_objects_list,ts_list,im0_imgsz_list):
-#     output_payload = []
-#     for index,tracked_object in enumerate(tracked_objects_list):
-#         result={}
-#         result["timestamp"]=ts_list[index]
-#         result["data"] = {}
-#         result["data"]["image"]=bs64_list[index]
-#         result["data"]["image"]=""
-#         result["data"]["width"]=int(im0_imgsz_list[index][1])
-#         result["data"]["height"]=int(im0_imgsz_list[index][0])
-#         result["objects"]=[]
+def create_payload(tracked_objects_list,ts_list,im0_list,bs64_list):
+    output_payload = []
+    for index,tracked_object in enumerate(tracked_objects_list):
+        result={}
+        result["timestamp"]=ts_list[index]
+        result["data"] = {}
+        result["data"]["image"]=bs64_list[index]
+        result["data"]["width"]=int(im0_list[index].shape[1])
+        result["data"]["height"]=int(im0_list[index].shape[0])
+        result["objects"]=[]
+        
+        for x1,y1,x2,y2,id,score, in tracked_object:
+            result["objects"].append({'trk_id':id,                                      
+                                        'x1':x1,
+                                        'y1':y1,
+                                        'x2':x2,
+                                        'y2':y2,
+                                        'width': x2-x1,
+                                        'height': y2-y1,
+                                        'confidence': score, 
+                                    }) 
+            
+            # xyxy_rescaled = [
+            #                         int(x1 * im0_list[index].shape[1] / args["IMG_SIZE"]),
+            #                         int(y1 * im0_list[index].shape[0] / args["IMG_SIZE"]),
+            #                         int(x2 * im0_list[index].shape[1] / args["IMG_SIZE"]),
+            #                         int(y2 * im0_list[index].shape[0] / args["IMG_SIZE"]),
+            #                     ]
+            # plot_one_box(xyxy_rescaled, im0_list[index], color=(255,144,31), label=str(id), line_thickness=2)
 
-        # for xywh,id,score in tracked_object:
-        #     result["objects"].append({'trk_id':id,                                      
-        #                                 'x1':xywh[0],
-        #                                 'y1':xywh[1],
-        #                                 'width': xywh[2],
-        #                                 'height': xywh[3],
-        #                                 'confidence': score, 
-        #                             }) 
-    #     output_payload.append(result)
-    # return output_payload
+        output_payload.append(result)
+    return output_payload
 
 
 def on_message(c, userdata, msg):
@@ -314,26 +328,36 @@ def on_message(c, userdata, msg):
         cm0_list = []   # list to store camera id's
         ts_list = []    # list to store
         im0m_list = []  # list to store im0_resized
-        
+        im0_list= []
+        bs64_list = []
+
         # loop over the input data
         for input in input_payload:
+            
             # Append camera id to cameras list
             cm0_list.append(input["camera_id"])
+            
             # Append timestamp to timestamps list
             ts_list.append(input["timestamp"])
             
             # store base64 image string
-            bs64_img = input["image"]    
+            bs64_img = input["image"]   
+            #append base64 image
+            bs64_list.append(bs64_img) 
+            
             # preprocess of base64 string     
             _, image_base64 = bs64_img.split(',', 1)
             # Decode the base64 string to byte64 array and read image
             image = Image.open(BytesIO(base64.b64decode(image_base64)))
             # Convert the BGR image to RGB
             image = cv2.cvtColor(np.array(image),cv2.COLOR_BGR2RGB)
+            im0_list.append(image)
+
             # Resize an image to model size
             image =cv2.resize(image,(args["IMG_SIZE"],args["IMG_SIZE"]))
             # Append resized image to im0_m list  
             im0m_list.append(image)
+
         # Stack Images 
         model_input = stack_images(im0m_list)
        
@@ -342,15 +366,18 @@ def on_message(c, userdata, msg):
         
         # Track Objects in Images
         tracked_objects_list = track(detections,cm0_list)
-        print(tracked_objects_list)
+
         #... Creation of Output Payload ...
-        # output_payload = create_payload(tracked_objects_list,ts_list,im0m_list)
-        # print(output_payload)
-        print("Completed ...")
-        
-        #... Send Message through MQTT ...
-        # msg_to_send=json.dumps(output_payload, cls=NumpyEncoder)
-        # client.publish(userdata['MQTT_OUT_0'], msg_to_send)
+        output_payload = create_payload(tracked_objects_list,ts_list,im0_list,bs64_list)
+    
+        client.publish(userdata['MQTT_OUT_0'], str(output_payload))
+
+        for item in output_payload:
+            print(item["objects"])
+
+        del cm0_list,ts_list,im0m_list,im0_list,bs64_list
+        del model_input,detections,tracked_objects_list
+        del output_payload,recieved_message,input_payload
 
     except Exception as e:
         print('Error:', e)

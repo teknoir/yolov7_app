@@ -1,13 +1,13 @@
 import numpy as np
 from tracker import matching
-from utils.plots import xywh2xyxy
+from utils.plots import xywh2xyxy,xyxy2xywh
 from tracker.kalman_filter import KalmanFilter
 from tracker.basetrack import BaseTrack, TrackState
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
     def __init__(self, tlwh, score):
-        self._tlwh = np.asarray(tlwh, dtype=np.float64)
+        self._tlwh = np.asarray(tlwh, dtype=np.float32)
         self.kalman_filter = None
         self.mean, self.covariance = None, None
         self.is_activated = False
@@ -92,9 +92,7 @@ class STrack(BaseTrack):
 
     @staticmethod
     def tlbr_to_tlwh(tlbr):
-        ret = np.asarray(tlbr).copy()
-        ret[2:] -= ret[:2]
-        return ret
+        return xyxy2xywh(tlbr)
 
     @staticmethod
     def tlwh_to_tlbr(tlwh):
@@ -118,34 +116,31 @@ class BYTETracker(object):
         self.max_time_lost = self.buffer_size
         self.kalman_filter = KalmanFilter()
 
-    def update(self, output_results):
+    def update(self, detections_data,_):
         self.frame_id += 1
         activated_starcks = []
         refind_stracks = []
         lost_stracks = []
         removed_stracks = []
 
-        if output_results.shape[1] == 5:
-            scores = output_results[:, 4]
-            bboxes = output_results[:, :4]
-        else:
-            output_results = output_results.cpu().numpy()
-            scores = output_results[:, 4]
-            bboxes = output_results[:, :4]
+        detections_array = detections_data[:, 0:4]
+        detections_array_xywh = STrack.tlbr_to_tlwh(detections_array.numpy())
+        scores = detections_data[:, 4]
 
         remain_inds = scores > self.track_thresh
         inds_low = scores > 0.1
         inds_high = scores < self.track_thresh
-
+        
         inds_second = np.logical_and(inds_low, inds_high)
-        dets_second = bboxes[inds_second]
-        dets = bboxes[remain_inds]
+        
+        dets_second = detections_array_xywh[inds_second]
+        dets = detections_array_xywh[remain_inds]
+        
         scores_keep = scores[remain_inds]
         scores_second = scores[inds_second]
         
         if len(dets) > 0:
-            detections = [STrack(STrack.tlbr_to_tlwh(tlbr), s) 
-                        for (tlbr, s) in zip(dets, scores_keep)]
+            detections = detections = [STrack(det, s) for (det, s) in zip(dets, scores_keep)]
         else:
             detections = []
 
@@ -174,10 +169,10 @@ class BYTETracker(object):
                 refind_stracks.append(track)
 
         if len(dets_second) > 0:
-            detections_second = [STrack(STrack.tlbr_to_tlwh(tlbr), s) 
-                                for (tlbr, s) in zip(dets_second, scores_second)]
+            detections_second = [STrack(det_s, s) for (det_s, s) in zip(dets_second, scores_second)]
         else:
             detections_second = []
+
         r_tracked_stracks = [strack_pool[i] for i in u_track if strack_pool[i].state == TrackState.Tracked]
         dists = matching.iou_distance(r_tracked_stracks, detections_second)
         matches, u_track, u_detection_second = matching.linear_assignment(dists, thresh=0.5)
@@ -229,19 +224,20 @@ class BYTETracker(object):
         self.removed_stracks.extend(removed_stracks)
         self.tracked_stracks, self.lost_stracks = remove_duplicate_stracks(self.tracked_stracks, self.lost_stracks)
         output_stracks = [track for track in self.tracked_stracks if track.is_activated]
-        output_tracks = []
+        outputs = []
 
         for t in output_stracks:
-            output = []
+            output= []
+            tlwh = t.tlwh
             tid = t.track_id
-            tlwh = np.expand_dims(t.tlwh, axis=0)
-            # xyxy = np.squeeze(xywh2xyxy(tlwh), axis=0)
-            output.extend(tlwh)
+            tlwh = np.expand_dims(tlwh, axis=0)
+            xyxy = xywh2xyxy(tlwh)
+            xyxy = np.squeeze(xyxy, axis=0)
+            output.extend(xyxy)
             output.append(tid)
             output.append(t.score)
-            output_tracks.append(output)
-        return output_tracks
-
+            outputs.append(output)
+        return outputs
 
 def joint_stracks(tlista, tlistb):
     exists = {}
