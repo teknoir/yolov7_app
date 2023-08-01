@@ -7,7 +7,22 @@ WORKDIR /usr/src/app
 
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN python3 -m pip install --upgrade pip wheel
-RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy torch pandas lap requests torchvision opencv-python-headless==4.5.5.64 tqdm PyYAML matplot seaborn scipy
+
+#....PyTorch and TorchVision for Jetson Devices...
+RUN pip install Cython
+RUN pip install gdown
+RUN gdown https://drive.google.com/uc?id=1e9FDGt2zGS5C5Pms7wzHYRb0HuupngK1
+RUN pip install torch-1.13.0a0+git7c98e70-cp38-cp38-linux_aarch64.whl
+RUN rm torch-1.13.0a0+git7c98e70-cp38-cp38-linux_aarch64.whl
+
+RUN gdown https://drive.google.com/uc?id=19UbYsKHhKnyeJ12VPUwcSvoxJaX7jQZ2
+RUN pip install torchvision-0.14.0a0+5ce4506-cp38-cp38-linux_aarch64.whl
+RUN rm torchvision-0.14.0a0+5ce4506-cp38-cp38-linux_aarch64.whl
+##################################################
+
+RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy pandas lap \
+                                    requests opencv-python-headless==4.5.5.64 \
+                                    tqdm PyYAML matplot seaborn scipy
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled

@@ -11,7 +11,6 @@ import paho.mqtt.client as mqtt
 from utils.torch_utils import select_device
 from tracker.byte_tracker import BYTETracker
 from models.experimental import attempt_load
-from utils.plots import plot_one_box
 from utils.general import non_max_suppression,check_img_size
 
 APP_NAME = os.getenv('APP_NAME', 'object_detection_and_tracking_app_teknoir')
@@ -220,10 +219,11 @@ def stack_images(im0m_list):
     # np.transpose =  take a list of flipped array and converts row to col and col to rows.
     
     model_input = np.transpose(np.flip(np.stack(im0m_list), 3), (0, 3, 1, 2)).astype(np.float32) / 255.0
+    
     return model_input
 
 
-def detect(model_input):
+def detect(model_input,cm0_list):
     """Detect function, which is responsible to detect the objects
     Args: 
         model input, which will be a list of tensors, to process multiple images at once
@@ -235,6 +235,7 @@ def detect(model_input):
     with torch.no_grad():
         # convert the input of model to torch tensors
         model_input = torch.tensor(model_input, device=device)
+       
         # get detection from model
         model_output = model(model_input)[0]
         # Apply Non Maximum Suppression (NMS)
@@ -243,6 +244,7 @@ def detect(model_input):
                                         args["IOU_THRESHOLD"],
                                         args["CLASSES_TO_DETECT"],
                                         args["AGNOSTIC_NMS"])
+ 
     print("CLASSES TO DETECT : ",args["CLASSES_TO_DETECT"])
     return detections
 
@@ -263,8 +265,6 @@ def track(detections,cm0_list):
         tracked_objects_list.append(tracked_objects)
     return tracked_objects_list
     
-
-
 
 def create_payload(tracked_objects_list,ts_list,im0_list,bs64_list):
     """create_payload Function, which is responsible to create an output payload
@@ -331,8 +331,8 @@ def on_message(c, userdata, msg):
         cm0_list = []   # list to store camera id's
         ts_list = []    # list to store
         im0m_list = []  # list to store im0_resized
-        im0_list= []
-        bs64_list = []
+        im0_list= []    # list to store im0
+        bs64_list = []  # list to store base64 image
 
         # loop over the input data
         for input in input_payload:
@@ -362,10 +362,10 @@ def on_message(c, userdata, msg):
             im0m_list.append(image)
 
         # Stack Images 
-        model_input = stack_images(im0m_list)
-       
+        model_input = stack_images(im0m_list,cm0_list)
+
         # Detect Objects in Images 
-        detections = detect(model_input)
+        detections = detect(model_input,cm0_list)
         
         # Track Objects in Images
         tracked_objects_list = track(detections,cm0_list)
