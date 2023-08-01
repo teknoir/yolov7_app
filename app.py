@@ -301,7 +301,6 @@ def on_message(c, userdata, msg):
         logger.info("... Message Recieved ...")
         # decode the message
         recieved_message = msg.payload.decode("utf-8", "ignore")
-        print(recieved_message)
         # try/except to avoid errors
         try:
             # load json str
@@ -315,7 +314,7 @@ def on_message(c, userdata, msg):
         cm0_list = []   # list to store camera id's
         ts_list = []    # list to store
         im0m_list = []  # list to store im0_resized
-
+        
         # loop over the input data
         for input in input_payload:
             # Append camera id to cameras list
@@ -335,16 +334,15 @@ def on_message(c, userdata, msg):
             image =cv2.resize(image,(args["IMG_SIZE"],args["IMG_SIZE"]))
             # Append resized image to im0_m list  
             im0m_list.append(image)
-
         # Stack Images 
         model_input = stack_images(im0m_list)
-        
+       
         # Detect Objects in Images 
         detections = detect(model_input)
         
         # Track Objects in Images
         tracked_objects_list = track(detections,cm0_list)
-
+        
         #... Creation of Output Payload ...
         # output_payload = create_payload(tracked_objects_list,ts_list,im0m_list)
         # print(output_payload)
@@ -378,7 +376,6 @@ if args['MQTT_VERSION'] == '3':
     client.on_connect = on_connect_v3
     client.on_message = on_message
     client.connect(args['MQTT_SERVICE_HOST'], port=args['MQTT_SERVICE_PORT'], keepalive=60)
-
 
 # used to loop on video file until the node disconnected.
 client.loop_forever()
