@@ -36,3 +36,20 @@ Where `{namespace}` is your projects name and `{image_name}` is specified in the
 
 ## Teknoir Devstudio
 When the pipelines are created there is an example flow in the `flows` folder that can be imported in a Devstudio.
+
+## Local Testing
+
+Assuming you have a MQTT broker on your local network and a device that is emitting MQTT messages (possibly the same device), the following can be used to test this repository:
+
+1. Download a model artifact from GCS (like ppe-bbox-clean-20220821000000146).
+
+2. Run eclipse-mosquitto (in separate terminal window)
+
+`docker pull eclipse-mosquitto`
+
+`docker run -it --name mosquitto -p 1883:1883 eclipse-mosquitto`
+
+3. Execute code below with configuration modifications to reflect your system, data, etc. 
+
+`MQTT_IN_0="camera/images" MQTT_SERVICE_HOST=192.168.68.104 MQTT_SERVICE_PORT=31883 WEIGHTS=weights/best_weights.pt IMG_SIZE=640 CLASS_NAMES=ppe-bbox-clean-20220821000000146/dataset/object.names python3 app.py`
+
