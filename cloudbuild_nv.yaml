@@ -5,107 +5,54 @@ options:
     - DOCKER_CLI_EXPERIMENTAL=enabled
 
 steps:
-  - id: initialize-buildx
+  - id: INIT-BUILDX
     name: gcr.io/cloud-builders/docker
     entrypoint: 'bash'
     args:
       - -c
       - |
         docker run --privileged gcr.io/teknoir/binfmt-qemu:v0.8-v7.0.0
-        docker buildx create --name mybuilder --use
+        docker buildx create --name teknoirmultiarchbuilder --use
         docker buildx inspect --bootstrap
     waitFor: ['-']
 
-  - id: nv-amd64
+  - id: BUILD-BASE-IMAGE
     name: gcr.io/cloud-builders/docker
     entrypoint: 'bash'
     args:
       - -c
       - |
         set -eo pipefail
-        docker build -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} -f nv.Dockerfile --label "git-commit=${SHORT_SHA}" .
-        docker tag gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} gcr.io/${PROJECT_ID}/yolov7:nv-amd64
-        docker push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA}
-        docker push gcr.io/${PROJECT_ID}/yolov7:nv-amd64
-    waitFor: ['-']
-
-  - id: nv-arm64
-    name: gcr.io/cloud-builders/docker
-    entrypoint: 'bash'
-    args:
-      - -c
-      - |
-        set -eo pipefail
-        docker buildx build \
-          --platform=linux/arm64 \
+        ./docker-buildx build \
+          --builder teknoirmultiarchbuilder \
+          --platform=linux/amd64,linux/arm64 \
           --push \
           --label "git-commit=${SHORT_SHA}" \
-          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
-          -t gcr.io/${PROJECT_ID}/yolov7:nv-arm64 \
+          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
           -f nv.Dockerfile .
-    waitFor: ['initialize-buildx']
-
-  - id: nv-manifest
-    name: gcr.io/cloud-builders/docker
-    entrypoint: 'bash'
-    args:
-      - -c
-      - |
-        set -eo pipefail
-        docker manifest create \
-        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA}
-
-        docker manifest annotate \
-        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
-        --os=linux
-
-        docker manifest annotate \
-        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
-        gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
-        --os=linux \
-        --arch=arm64 \
-        --variant=v8
-
-        docker manifest push gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA}
 
         if [ ${BRANCH_NAME} == 'main' ]; then
-          docker manifest create \
-          gcr.io/${PROJECT_ID}/yolov7:nv-latest \
-          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
-          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA}
-
-          docker manifest annotate \
-          gcr.io/${PROJECT_ID}/yolov7:nv-latest \
-          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-amd64-${SHORT_SHA} \
-          --os=linux
-
-          docker manifest annotate \
-          gcr.io/${PROJECT_ID}/yolov7:nv-latest \
-          gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-nv-arm64-${SHORT_SHA} \
-          --os=linux \
-          --arch=arm64 \
-          --variant=v8
-
-          docker manifest push gcr.io/${PROJECT_ID}/yolov7:nv-latest
+          ./docker-buildx build \
+            --builder teknoirmultiarchbuilder \
+            --platform=linux/amd64,linux/arm64 \
+            --push \
+            --label "git-commit=${SHORT_SHA}" \
+            -t gcr.io/${PROJECT_ID}/yolov7:nv-latest \
+            -f nv.Dockerfile .
         fi
-    waitFor:
-      - nv-amd64
-      - nv-arm64
+    waitFor: ['INIT-BUILDX']
 
-  - id: coco_names
+  - id: DL_COCO_NAMES
     name: gcr.io/cloud-builders/wget
     args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
     waitFor: ['-']
 
-  - id: yolov7_tiny_pt
+  - id: DL_YOLOV7_TINY_PT
     name: gcr.io/cloud-builders/wget
     args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
     waitFor: ['-']
 
-  - id: yolov7_vanilla
+  - id: BUILD-VANILLA-IMAGE-EXAMPLE
     name: gcr.io/cloud-builders/docker
     env:
       - 'DOCKER_CLI_EXPERIMENTAL=enabled'
@@ -117,8 +64,33 @@ steps:
       - -c
       - |
         set -eo pipefail
-        ./build_nv_vanilla.sh
-    waitFor:
-      - nv-manifest
-      - coco_names
-      - yolov7_tiny_pt
+        ./docker-buildx build \
+          --builder teknoirmultiarchbuilder \
+          --build-arg=BASE_IMAGE=gcr.io/teknoir/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
+          --build-arg=MODEL_NAME=yolov7 \
+          --build-arg=TRAINING_DATASET=coco \
+          --build-arg=IMG_SIZE=640 \
+          --build-arg=WEIGHTS_FILE=yolov7-tiny.pt \
+          --build-arg=CLASS_NAMES_FILE=coco.names \
+          --platform=linux/amd64,linux/arm64 \
+          --label "git-commit=${SHORT_SHA}" \
+          --push \
+          -t gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-nv-${SHORT_SHA} \
+          -f ./vanilla.Dockerfile .
+        
+        if [ ${BRANCH_NAME} == 'main' ]; then
+          ./docker-buildx build \
+            --builder teknoirmultiarchbuilder \
+            --build-arg=BASE_IMAGE=gcr.io/teknoir/yolov7:${BRANCH_NAME}-nv-${SHORT_SHA} \
+            --build-arg=MODEL_NAME=yolov7 \
+            --build-arg=TRAINING_DATASET=coco \
+            --build-arg=IMG_SIZE=640 \
+            --build-arg=WEIGHTS_FILE=yolov7-tiny.pt \
+            --build-arg=CLASS_NAMES_FILE=coco.names \
+            --platform=linux/amd64,linux/arm64 \
+            --label "git-commit=${SHORT_SHA}" \
+            --push \
+            -t gcr.io/${PROJECT_ID}/yolov7-vanilla:nv-latest \
+            -f ./vanilla.Dockerfile .
+        fi
+    waitFor: ['BUILD-BASE-IMAGE', 'DL_COCO_NAMES', 'DL_YOLOV7_TINY_PT']
