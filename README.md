@@ -59,3 +59,4 @@ To start a cloudbuild for the CPU version of the image run:
 ```
 gcloud --project=teknoir builds submit . --config=cloudbuild_cpu.yaml --substitutions=SHORT_SHA="build-my-local-changes",BRANCH_NAME="test"
 ```
+
