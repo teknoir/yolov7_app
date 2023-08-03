@@ -45,7 +45,7 @@ args = {
     'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", 0.45)),
     'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
-    'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT", "person,car")),
+    'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT", "person,bicycle,car,motorbike,truck")),
 
     "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", 0.5)),
     "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", 0.8)),

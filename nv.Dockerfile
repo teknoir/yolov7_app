@@ -4,13 +4,18 @@ RUN apt update && apt install --no-install-recommends -y zip htop screen libgl1-
 
 RUN mkdir -p /usr/src/app
 RUN git clone https://github.com/WongKinYiu/yolov7.git /usr/src/app
+
 WORKDIR /usr/src/app
+
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN python -m pip install --upgrade pip wheel
 RUN pip uninstall -y Pillow torchtext  # torch torchvision
-RUN pip install --no-cache -r requirements.txt paho.mqtt albumentations wandb gsutil notebook Pillow>=9.1.0 \
-    'opencv-python-headless==4.5.5.62' \
-    --extra-index-url https://download.pytorch.org/whl/cu113
+RUN pip install --no-cache -r requirements.txt paho.mqtt Pillow>=9.1.0 \
+    opencv-python-headless==4.5.5.62 --extra-index-url https://download.pytorch.org/whl/cu113
+# NOT USED:  albumentations wandb gsutil notebook
+
+# OBJECT TRACKING DEPENDENCIES
+RUN python3 -m pip install numpy scipy lap cython-bbox
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled

@@ -71,6 +71,8 @@ create_manifest_and_push(){
     --os=linux \
     --arch=arm64 \
     --variant=v8
+  
+  docker manifest push gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-nv-${SHORT_SHA}
 
   docker manifest push gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG}
 }

@@ -15,16 +15,18 @@ RUN git clone https://github.com/WongKinYiu/yolov7.git /usr/src/app
 WORKDIR /usr/src/app
 
 # RUN python3 -m pip install --upgrade pip wheel
-RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt albumentations wandb gsutil notebook Pillow>=9.1.0 \
-    'opencv-python-headless==4.5.5.62'  \ 
-    torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
+RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt \
+    Pillow>=9.1.0 opencv-python-headless==4.5.5.62 torch torchvision torchaudio \
+    --extra-index-url https://download.pytorch.org/whl/cpu 
+# NOT USED: albumentations wandb gsutil notebook 
+
+# OBJECT TRACKING DEPENDENCIES
+RUN python3 -m pip install numpy scipy lap cython-bbox
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
 ADD app.py .
 ADD tracker tracker/
-
-#RUN wget -O model.pt https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt
 
 CMD ["python3", "app.py"]
