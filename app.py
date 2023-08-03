@@ -196,6 +196,7 @@ def detect(image_stack):
     t0 = time.time()
     with torch.no_grad():
         model_input = torch.tensor(image_stack, device=device)
+        if half: model_input.half()  # to FP16
         model_output = model(model_input)[0]
         detections = non_max_suppression(
             model_output,
