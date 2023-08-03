@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 
-import numpy as np
-from PIL import Image
-from io import BytesIO
 import os
 import sys
 import cv2
 import json
 import time
 import base64
-import torch
-import paho.mqtt.client as mqtt
-from io import BytesIO
 import logging
+import torch
+import torch.backends.cudnn as cudnn
+from io import BytesIO
+import numpy as np
+from PIL import Image
+import paho.mqtt.client as mqtt
 
 # these imports draw from yolov7, which is cloned when the dockerfiles are built
 from models.experimental import attempt_load
 from utils.general import non_max_suppression, check_img_size
+from utils.torch_utils import select_device
 
 from tracker.byte_tracker import BYTETracker
 
