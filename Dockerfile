@@ -21,7 +21,7 @@ RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt \
 # NOT USED: albumentations wandb gsutil notebook 
 
 # OBJECT TRACKING DEPENDENCIES
-RUN python3 -m pip install numpy scipy lap cython-bbox
+RUN python3 -m pip install numpy scipy lap 
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
