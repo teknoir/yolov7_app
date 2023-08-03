@@ -39,10 +39,10 @@ args = {
     'MODEL_VERSION': os.getenv("MODEL_VERSION", "0.1"),
     'MODEL_ID': os.getenv("MODEL_ID", "abc123"),
 
-    'WEIGHTS': os.getenv("WEIGHTS", ""),
+    'WEIGHTS': os.getenv("WEIGHTS", "model.pt"),
     'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
     'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", 640)),
-    'CLASS_NAMES': os.getenv("CLASS_NAMES", ""),
+    'CLASS_NAMES': os.getenv("CLASS_NAMES", "obj.names"),
     'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", 0.45)),
     'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
@@ -67,6 +67,7 @@ logger.info("TΞꓘN01R")
 logger.info("TΞꓘN01R")
 logger.info("TΞꓘN01R")
 
+logger.info(json.dumps(args))
 
 def error_str(rc):
     return '{}: {}'.format(rc, mqtt.error_string(rc))
@@ -149,7 +150,7 @@ else:
 logger.info("Initializing Object Detection Model")
 device = select_device(args["DEVICE"])
 half = device.type != 'cpu'  # half precision only supported on CUDA
-model = attempt_load(args["WEIGHTS"], map_location=args["DEVICE"])
+model = attempt_load(args["WEIGHTS"], map_location=device)
 stride = int(model.stride.max())
 imgsz = check_img_size(args["IMG_SIZE"], s=stride)
 if isinstance(imgsz, (list, tuple)):
