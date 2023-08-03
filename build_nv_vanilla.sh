@@ -37,7 +37,7 @@ build_and_push(){
     --build-arg=MODEL_NAME=yolov7-vanilla \
     --build-arg=TRAINING_DATASET=cocoa \
     --build-arg=IMG_SIZE=640 \
-    --build-arg=WEIGHTS_FILE=yolov7.pt \
+    --build-arg=WEIGHTS_FILE=yolov7-tiny.pt \
     --build-arg=CLASS_NAMES_FILE=coco.names \
     --platform=linux/${ARCH} \
     --label "git-commit=${SHORT_SHA}" \
