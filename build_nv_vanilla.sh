@@ -34,10 +34,10 @@ build_and_push(){
   # Build and set values specific to this model
   docker buildx build \
     --build-arg=BASE_IMAGE=gcr.io/teknoir/yolov7:${BASE_TAG} \
-    --build-arg=MODEL_NAME=yolov7 \
-    --build-arg=TRAINING_DATASET=coco \
+    --build-arg=MODEL_NAME=yolov7-vanilla \
+    --build-arg=TRAINING_DATASET=cocoa \
     --build-arg=IMG_SIZE=640 \
-    --build-arg=WEIGHTS_FILE=yolov7-tiny.pt \
+    --build-arg=WEIGHTS_FILE=yolov7.pt \
     --build-arg=CLASS_NAMES_FILE=coco.names \
     --platform=linux/${ARCH} \
     --label "git-commit=${SHORT_SHA}" \
@@ -71,8 +71,6 @@ create_manifest_and_push(){
     --os=linux \
     --arch=arm64 \
     --variant=v8
-  
-  docker manifest push gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-nv-${SHORT_SHA}
 
   docker manifest push gcr.io/${PROJECT_ID}/yolov7-vanilla:${TAG}
 }

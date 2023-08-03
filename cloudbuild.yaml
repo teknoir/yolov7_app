@@ -105,7 +105,7 @@ steps:
     args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
     waitFor: ['-']
 
-  - id: yolov7
+  - id: yolov7_vanilla
     name: gcr.io/cloud-builders/docker
     env:
       - 'DOCKER_CLI_EXPERIMENTAL=enabled'
