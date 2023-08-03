@@ -62,7 +62,7 @@
         docker build \
         --tag={{ image_name }}:{{ tag }} \
         --build-arg=BASE_IMAGE={{ base_image }} \
-        --file=arm64v8.l4t.Dockerfile .
+        --file=l4t.Dockerfile .
       args:
         chdir: /opt/teknoir/yolov7
       vars:
