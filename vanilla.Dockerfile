@@ -24,5 +24,8 @@ ENV CLASS_NAMES_FILE=$CLASS_NAMES_FILE
 ENV CLASS_NAMES=/usr/src/app/obj.names
 ADD $CLASS_NAMES_FILE $CLASS_NAMES
 
+# These are already added in the base image
+# This is fine for local development, but not for production
+# Only the model, weight and class names should be added here
 ADD app.py /usr/src/app/app.py
 ADD tracker/ /usr/src/app/tracker/
