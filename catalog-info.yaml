@@ -8,7 +8,7 @@ metadata:
   description: YOLO v7 Object Detection app for multiple architectures in the Teknoir Platform
   annotations:
     'github.com/project-slug': teknoir/yolov7_app
-    'backstage.io/techdocs-ref': dir:./app/docs
+    'backstage.io/techdocs-ref': dir:./app
     'teknoir.org/productimage-ref': dir:./app/product-image
     'teknoir.org/productpage-ref': dir:./app/product-page
     'teknoir.org/license-ref': dir:./app/license.yaml
@@ -26,3 +26,5 @@ spec:
   system: system:teknoir/computer-vision
   dependsOn:
     - component:teknoir/gcr.io.teknoir.yolov7
+    - component:teknoir/gcr.io.teknoir.yolov7-base
+    - component:teknoir/gcr.io.teknoir.yolov7-vanilla
