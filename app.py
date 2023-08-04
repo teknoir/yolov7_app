@@ -178,6 +178,7 @@ tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
 
 def detect(img):
     t0 = time_synchronized()
+
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
     img = np.expand_dims(img, axis=0)
@@ -203,7 +204,7 @@ def load_image(base64_image, userdata):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
     # image = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB)
-    image = cv2.resize(image, (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
+    image = cv2.resize(np.array(image), (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
     return image
 
 
@@ -235,12 +236,12 @@ def on_message(c, userdata, msg):
             "metadata": {
                 "applicaton": {
                     "name": APP_NAME, 
-                    "version": "v1.0", 
+                    "version": "v1.0",
                     "processing_time": msg_time_1 - msg_time_0},
                 "peripheral": {
                     "id": "00001", 
                     "name": "parking-lot-1", 
-                    "type": "camera", 
+                    "type": "camera",
                     "image_height": img.shape[0], 
                     "image_width": img.shape[1]},
             },
