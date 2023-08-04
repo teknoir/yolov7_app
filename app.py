@@ -195,8 +195,9 @@ trackers = ObjectTrackers(args)
 def detect(image_stack):
     t0 = time.time()
     with torch.no_grad():
-        model_input = torch.tensor(image_stack, device=device)
-        if half: model_input.half()  # to FP16
+        model_input = torch.from_numpy(image_stack).to(device)
+        model_input = model_input.half() if half else model_input.float()  # uint8 to fp16/32
+        model_input /= 255.0  # 0 - 255 to 0.0 - 1.0
         model_output = model(model_input)[0]
         detections = non_max_suppression(
             model_output,
@@ -217,7 +218,8 @@ def load_image(base64_image, userdata):
     # Convert the BGR image to RGB
     image = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB)
     # Resize an image to model size
-    return cv2.resize(image, (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
+    image = cv2.resize(image, (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
+    return np.ascontiguousarray(image)
 
 
 def on_message(c, userdata, msg):
@@ -240,6 +242,8 @@ def on_message(c, userdata, msg):
         # Represent list of images as a stack (tensor)
         image_stack = np.transpose(
             np.flip(np.stack(images), 3), (0, 3, 1, 2)).astype(np.float32) / 255.0
+        
+        image_stack = np.ascontiguousarray(image_stack)
 
         detections, inference_time = detect(image_stack)
 
@@ -285,10 +289,12 @@ def on_message(c, userdata, msg):
                     'y1': y1,
                     'x2': x2,
                     'y2': y2,
-                    'center': {'x': int((x1 + x2) / 2), 'y': int((y1 + y2) / 2)},
+                    'xc': int((x1 + x2) / 2),
+                    'yc': int((y1 + y2) / 2),
                     'width': x2 - x1,
                     'height': y2 - y1,
-                    'confidence': score,
+                    'ratio': (y2 - y1) / (x2 - x1)
+                    'score': score,
                     'area': x2 * y2,
                     'label': args["CLASS_NAMES"][class_index],
                     'track_time': track_time
