@@ -211,6 +211,7 @@ def load_image(base64_image, userdata):
 def on_message(c, userdata, msg):
     try:
         msg_time_0 = time_synchronized()
+        
         message = str(msg.payload.decode("utf-8", "ignore"))
         # {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
         try:
@@ -223,9 +224,9 @@ def on_message(c, userdata, msg):
 
         detections = detect(img)
 
-        track_time_0 = time.time()
-        tracked_objects = tracker.update(detections, img)
-        track_time = time.time() - track_time_0
+        # track_time_0 = time.time()
+        tracked_objects = tracker.update(torch.tensor(detections), img)
+        # track_time = time.time() - track_time_0
 
         msg_time_1 = time_synchronized()
 
@@ -255,7 +256,6 @@ def on_message(c, userdata, msg):
             track_id = tracked_object[4]
             class_index = int(tracked_object[5])
             score = tracked_object[6]
-
             payload["data"].append({
                 'trk_id': track_id,
                 'x1': x1,
@@ -270,7 +270,7 @@ def on_message(c, userdata, msg):
                 'score': score,
                 'area': x2 * y2,
                 'label': args["CLASS_NAMES"][class_index],
-                'track_time': track_time
+                # 'track_time': track_time
             })
 
         msg = json.dumps(payload, cls=NumpyEncoder)
