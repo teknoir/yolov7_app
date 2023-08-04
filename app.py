@@ -26,7 +26,7 @@ APP_NAME = os.getenv('APP_NAME', 'yolov7-bytetrack')
 args = {
     'NAME': APP_NAME,
 
-    'MQTT_IN_0': os.getenv("MQTT_IN_0", "camera/images"),
+    'MQTT_IN_0': os.getenv("MQTT_IN_0", f"{APP_NAME}/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
     'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
     'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
@@ -198,7 +198,7 @@ def detect(image_stack):
         model_input = torch.from_numpy(image_stack).to(device)
         model_input = model_input.half() if half else model_input.float()  # uint8 to fp16/32
         model_input /= 255.0  # 0 - 255 to 0.0 - 1.0
-        model_output = model(model_input)[0]
+        model_output = model(model_input, augment=args["AUGMENTED_INFERENCE"])[0]
         detections = non_max_suppression(
             model_output,
             args["CONF_THRESHOLD"],
@@ -293,7 +293,7 @@ def on_message(c, userdata, msg):
                     'yc': int((y1 + y2) / 2),
                     'width': x2 - x1,
                     'height': y2 - y1,
-                    'ratio': (y2 - y1) / (x2 - x1)
+                    'ratio': (y2 - y1) / (x2 - x1),
                     'score': score,
                     'area': x2 * y2,
                     'label': args["CLASS_NAMES"][class_index],
