@@ -197,7 +197,7 @@ def detect(img):
             args["AGNOSTIC_NMS"])
     inference_time = time_synchronized() - t0
     logger.info("YOLOv7 Inference Time : {}".format(inference_time))
-    return detections, inference_time
+    return detections
 
 
 def load_image(base64_image, userdata):
@@ -221,7 +221,7 @@ def on_message(c, userdata, msg):
 
         img = load_image(data_received["image"], userdata)
 
-        detections, inference_time = detect(img)
+        detections = detect(img)
 
         track_time_0 = time.time()
         tracked_objects = tracker.update(detections, img)
