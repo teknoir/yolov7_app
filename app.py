@@ -224,7 +224,7 @@ def on_message(c, userdata, msg):
         detections, inference_time = detect(img)
 
         track_time_0 = time.time()
-        tracked_objects = tracker.update(torch.tensor(detections), img)
+        tracked_objects = tracker.update(detections, img)
         track_time = time.time() - track_time_0
 
         msg_time_1 = time_synchronized()
