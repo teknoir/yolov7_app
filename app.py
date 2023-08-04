@@ -179,16 +179,23 @@ tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
 def detect(img):
     t0 = time_synchronized()
 
+    logger.info("HEREA")
+
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
     img = np.expand_dims(img, axis=0)
 
+    logger.info("HEREB")
+
     img_tensor = torch.from_numpy(img).to(device)
     img_tensor = img_tensor.half() if half else img_tensor.float()  # uint8 to fp16/32
     img_tensor /= 255.0  # 0 - 255 to 0.0 - 1.0
+    
+    logger.info("HEREC")
 
     with torch.no_grad():
         pred = model(img_tensor, augment=args["AUGMENTED_INFERENCE"])[0]
+        logger.info("HERED")
         detections = non_max_suppression(
             pred,
             args["CONF_THRESHOLD"],
@@ -203,9 +210,12 @@ def detect(img):
 def load_image(base64_image, userdata):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
+    image = np.array(image)
+    original_height = image.shape[0]
+    original_width = image.shape[1]
     # image = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB)
     image = cv2.resize(np.array(image), (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
-    return image
+    return image, original_height, original_width
 
 
 def on_message(c, userdata, msg):
@@ -220,13 +230,20 @@ def on_message(c, userdata, msg):
             logger.error("Error decoding JSON:", e)
             sys.exit(1)
 
-        img = load_image(data_received["image"], userdata)
+        img, orig_height, orig_width = load_image(data_received["image"], userdata)
 
         detections = detect(img)
 
+        logger.info("HEREE")
+
+        # print(detections)
+        # print(torch.tensor(detections))
+
         # track_time_0 = time.time()
-        tracked_objects = tracker.update(torch.tensor(detections), img)
+        tracked_objects = tracker.update(detections, img)
         # track_time = time.time() - track_time_0
+
+        logger.info("HEREF")
 
         msg_time_1 = time_synchronized()
 
@@ -243,12 +260,13 @@ def on_message(c, userdata, msg):
                     "id": "00001", 
                     "name": "parking-lot-1", 
                     "type": "camera",
-                    "image_height": img.shape[0], 
-                    "image_width": img.shape[1]},
+                    "image_height": orig_height, 
+                    "image_width": orig_width},
             },
         }
 
         for tracked_object in tracked_objects:
+            logger.info("HEREG")
             x1 = tracked_object[0]
             y1 = tracked_object[1]
             x2 = tracked_object[2]
@@ -256,6 +274,7 @@ def on_message(c, userdata, msg):
             track_id = tracked_object[4]
             class_index = int(tracked_object[5])
             score = tracked_object[6]
+            logger.info("HEREH")
             payload["data"].append({
                 'trk_id': track_id,
                 'x1': x1,
@@ -273,6 +292,7 @@ def on_message(c, userdata, msg):
                 # 'track_time': track_time
             })
 
+        logger.info("HEREI")
         msg = json.dumps(payload, cls=NumpyEncoder)
         client.publish(userdata['MQTT_OUT_0'], msg)
         payload["image"] = "%s... - truncated for logs" % payload["image"][0:32]
