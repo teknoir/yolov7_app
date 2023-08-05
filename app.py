@@ -56,6 +56,8 @@ args = {
     "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", 0.8)),
     "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", 30)),
     "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", 10)),
+
+    "INCLUDE_IMAGE": str(os.getenv("INCLUDE_IMAGE",""))
 }
 
 logger = logging.getLogger(args['NAME'])
@@ -223,9 +225,8 @@ def load_image(base64_image):
 
 
 def on_message(c, userdata, msg):
-    #try:
     message = str(msg.payload.decode("utf-8", "ignore"))
-    # {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
+    # payload: {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
     
     try: 
         data_received = json.loads(message)
@@ -261,6 +262,9 @@ def on_message(c, userdata, msg):
         },
     }
 
+    if args["INCLUDE_IMAGE"] != "":
+        payload["image"] = data_received["image"]
+
     for tracked_object in tracked_objects:
         x1 = tracked_object[0]
         y1 = tracked_object[1]
@@ -289,12 +293,9 @@ def on_message(c, userdata, msg):
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
-    payload["image"] = "%s... - truncated for logs" % payload["image"][0:32]
+    if args["INCLUDE_IMAGE"] != "":
+        payload["image"] = "%s... - truncated for logs" % payload["image"][0:32]
     logger.info(payload)
-
-    # except Exception as e:
-    #     logger.error(e)
-    #     sys.exit(1)
 
 
 if args['MQTT_VERSION'] == '5':
