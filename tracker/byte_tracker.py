@@ -275,7 +275,7 @@ class BYTETracker(object):
         clss_second = classes[remain_inds]
         
         if len(dets) > 0:
-            detections = detections = [STrack(det, s) for (det, s) in zip(dets, scores_keep)]
+            detections = detections = [STrack(det, s, c) for (det, s, c) in zip(dets, scores_keep, clss_keep)]
         else:
             detections = []
 
