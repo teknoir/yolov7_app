@@ -272,7 +272,7 @@ def on_message(c, userdata, msg):
             camera_id = camera_image["camera_id"]
             tracker = trackers.get(camera_id)
             track_time_0 = time.time()
-            tracked_objects = tracker.update(
+            tracked_objects = tracker.update_multi(
                 torch.tensor(detection), images[i])
             track_time = time.time() - track_time_0
 

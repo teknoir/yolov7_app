@@ -14,10 +14,14 @@ import numpy as np
 from PIL import Image
 import paho.mqtt.client as mqtt
 
+import warnings
+warnings.filterwarnings('ignore')
+
 # these imports draw from yolov7, which is cloned when the dockerfiles are built
 from models.experimental import attempt_load
-from utils.general import non_max_suppression, check_img_size
+from utils.general import non_max_suppression, check_img_size, scale_coords
 from utils.torch_utils import select_device, time_synchronized
+from utils.datasets import letterbox
 
 from tracker.byte_tracker import BYTETracker
 
@@ -44,7 +48,7 @@ args = {
     'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", 640)),
     'CLASS_NAMES': os.getenv("CLASS_NAMES", "obj.names"),
     'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", 0.45)),
-    'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
+    # 'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
     'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT", "person,bicycle,car,motorbike,truck")),
 
@@ -176,131 +180,122 @@ tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
                       frame_rate=args["TRACKER_FRAME_RATE"])
 
 
-def detect(img):
-    t0 = time_synchronized()
-
-    logger.info("HEREA")
-
+def detect_and_track(im0):
+    img = im0.copy()
+    img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
+    #img = cv2.resize(np.array(img), (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
-    img = np.expand_dims(img, axis=0)
-
-    logger.info("HEREB")
-
-    img_tensor = torch.from_numpy(img).to(device)
-    img_tensor = img_tensor.half() if half else img_tensor.float()  # uint8 to fp16/32
-    img_tensor /= 255.0  # 0 - 255 to 0.0 - 1.0
+    # img = np.expand_dims(img, axis=0)
+    img = torch.from_numpy(img).to(device)
+    img = img.half() if half else img.float()  # uint8 to fp16/32
+    img /= 255.0  # 0 - 255 to 0.0 - 1.0
+    if img.ndimension() == 3: img = img.unsqueeze(0)
     
-    logger.info("HEREC")
-
     with torch.no_grad():
-        pred = model(img_tensor, augment=args["AUGMENTED_INFERENCE"])[0]
-        logger.info("HERED")
-        detections = non_max_suppression(
-            pred,
-            args["CONF_THRESHOLD"],
-            args["IOU_THRESHOLD"],
-            args["CLASSES_TO_DETECT"],
-            args["AGNOSTIC_NMS"])
+        t0 = time_synchronized()
+        pred = model(img)[0] #, augment=args["AUGMENTED_INFERENCE"])[0]
+        pred = non_max_suppression(pred,
+                                   args["CONF_THRESHOLD"],
+                                   args["IOU_THRESHOLD"],
+                                   args["CLASSES_TO_DETECT"],
+                                   args["AGNOSTIC_NMS"])
     inference_time = time_synchronized() - t0
     logger.info("YOLOv7 Inference Time : {}".format(inference_time))
-    return detections
+
+    # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
+    raw_detection = np.empty((0,6), float)
+    for det in pred:
+        if len(det) > 0:
+            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+            for *xyxy, conf, cls in reversed(det):
+                raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
+    
+    tracked_objects = tracker.update(raw_detection)
+    #tracked_objects = tracker.update_multi(torch.tensor(detections), img) # multi
+    
+    return tracked_objects
 
 
-def load_image(base64_image, userdata):
+def load_image(base64_image):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
     image = np.array(image)
-    original_height = image.shape[0]
-    original_width = image.shape[1]
-    # image = cv2.cvtColor(np.array(image), cv2.COLOR_BGR2RGB)
-    image = cv2.resize(np.array(image), (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
-    return image, original_height, original_width
+    return image
 
 
 def on_message(c, userdata, msg):
-    try:
-        msg_time_0 = time_synchronized()
-        
-        message = str(msg.payload.decode("utf-8", "ignore"))
-        # {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
-        try:
-            data_received = json.loads(message)
-        except json.JSONDecodeError as e:
-            logger.error("Error decoding JSON:", e)
-            sys.exit(1)
+    #try:
+    message = str(msg.payload.decode("utf-8", "ignore"))
+    # {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
+    
+    try: 
+        data_received = json.loads(message)
+    except json.JSONDecodeError as e:
+        logger.error("Error decoding JSON:", e)
+        return
 
-        img, orig_height, orig_width = load_image(data_received["image"], userdata)
+    msg_time_0 = time_synchronized()
 
-        detections = detect(img)
+    img = load_image(data_received["image"])
 
-        logger.info("HEREE")
+    tracked_objects = detect_and_track(img)
 
-        # print(detections)
-        # print(torch.tensor(detections))
+    msg_time_1 = time_synchronized()
 
-        # track_time_0 = time.time()
-        tracked_objects = tracker.update(detections, img)
-        # track_time = time.time() - track_time_0
+    payload = {
+        "timestamp": data_received["timestamp"],
+        "type": "objects",
+        "data": [],
+        "metadata": {
+            "applicaton": {
+                "name": APP_NAME, 
+                "version": "v1.0",
+                "processing_time": msg_time_1 - msg_time_0,
+                "input_parameters": userdata},
+            "peripheral": {
+                "id": "00001",
+                "name": "parking-lot-1", 
+                "type": "camera",
+                "image_height": img.shape[0], 
+                "image_width": img.shape[1],
+                "fps": 1},
+        },
+    }
 
-        logger.info("HEREF")
+    for tracked_object in tracked_objects:
+        x1 = tracked_object[0]
+        y1 = tracked_object[1]
+        x2 = tracked_object[2]
+        y2 = tracked_object[3]
+        track_id = tracked_object[4]
+        class_index = int(tracked_object[5])
+        score = tracked_object[6]
+        payload["data"].append({
+            'trk_id': track_id,
+            'x1': x1,
+            'y1': y1,
+            'x2': x2,
+            'y2': y2,
+            'x_center': int((x1 + x2) / 2),
+            'y_center': int((y1 + y2) / 2),
+            'width': x2 - x1,
+            'height': y2 - y1,
+            'ratio': (y2 - y1) / (x2 - x1),
+            'score': score,
+            'area': x2 * y2,
+            'label': args["CLASS_NAMES"][class_index],
+            # 'track_time': track_time
+        })
 
-        msg_time_1 = time_synchronized()
+    msg = json.dumps(payload, cls=NumpyEncoder)
+    client.publish(userdata['MQTT_OUT_0'], msg)
+    payload["image"] = "%s... - truncated for logs" % payload["image"][0:32]
+    logger.info(payload)
 
-        payload = {
-            "timestamp": data_received["timestamp"],
-            "type": "objects",
-            "data": [],
-            "metadata": {
-                "applicaton": {
-                    "name": APP_NAME, 
-                    "version": "v1.0",
-                    "processing_time": msg_time_1 - msg_time_0},
-                "peripheral": {
-                    "id": "00001", 
-                    "name": "parking-lot-1", 
-                    "type": "camera",
-                    "image_height": orig_height, 
-                    "image_width": orig_width},
-            },
-        }
-
-        for tracked_object in tracked_objects:
-            logger.info("HEREG")
-            x1 = tracked_object[0]
-            y1 = tracked_object[1]
-            x2 = tracked_object[2]
-            y2 = tracked_object[3]
-            track_id = tracked_object[4]
-            class_index = int(tracked_object[5])
-            score = tracked_object[6]
-            logger.info("HEREH")
-            payload["data"].append({
-                'trk_id': track_id,
-                'x1': x1,
-                'y1': y1,
-                'x2': x2,
-                'y2': y2,
-                'x_center': int((x1 + x2) / 2),
-                'y_center': int((y1 + y2) / 2),
-                'width': x2 - x1,
-                'height': y2 - y1,
-                'ratio': (y2 - y1) / (x2 - x1),
-                'score': score,
-                'area': x2 * y2,
-                'label': args["CLASS_NAMES"][class_index],
-                # 'track_time': track_time
-            })
-
-        logger.info("HEREI")
-        msg = json.dumps(payload, cls=NumpyEncoder)
-        client.publish(userdata['MQTT_OUT_0'], msg)
-        payload["image"] = "%s... - truncated for logs" % payload["image"][0:32]
-        logger.info(payload)
-
-    except Exception as e:
-        logger.error(e)
-        sys.exit(1)
+    # except Exception as e:
+    #     logger.error(e)
+    #     sys.exit(1)
 
 
 if args['MQTT_VERSION'] == '5':

@@ -11,11 +11,9 @@ class TrackState(object):
 
 class BaseTrack(object):
     _count = 0
-
     track_id = 0
     is_activated = False
     state = TrackState.New
-
     history = OrderedDict()
     features = []
     curr_feature = None
@@ -23,8 +21,6 @@ class BaseTrack(object):
     start_frame = 0
     frame_id = 0
     time_since_update = 0
-
-    # multi-camera
     location = (np.inf, np.inf)
 
     @property
