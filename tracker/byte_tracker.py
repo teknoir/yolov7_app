@@ -275,7 +275,7 @@ class BYTETracker(object):
         clss_second = classes[remain_inds]
         
         if len(dets) > 0:
-            detections = detections = [STrack(det, s, c) for (det, s, c) in zip(dets, scores_keep, clss_keep)]
+            detections = [STrack(det, s, c) for (det, s, c) in zip(dets, scores_keep, clss_keep)]
         else:
             detections = []
 
@@ -362,8 +362,8 @@ class BYTETracker(object):
         self.removed_stracks.extend(removed_stracks)
         self.tracked_stracks, self.lost_stracks = remove_duplicate_stracks(self.tracked_stracks, self.lost_stracks)
         output_stracks = [track for track in self.tracked_stracks if track.is_activated]
-        outputs = []
 
+        outputs = []
         for t in output_stracks:
             output= []
             tlwh = t.tlwh
@@ -371,11 +371,11 @@ class BYTETracker(object):
             tlwh = np.expand_dims(tlwh, axis=0)
             xyxy = xywh2xyxy(tlwh)
             xyxy = np.squeeze(xyxy, axis=0)
-            output.extend(xyxy)
-            output.append(tid)
-            output.append(t.score)
-            outputs.append(output)
-        
+            # output.extend(xyxy)
+            # output.append(tid)
+            # output.append(clss)
+            # output.append(t.score)
+            outputs.append([xyxy[0],xyxy[1],xyxy[2],xyxy[3],tid,clss,t.score])
         outputs = np.array(outputs)
         return outputs
 

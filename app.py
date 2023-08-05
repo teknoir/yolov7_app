@@ -269,6 +269,7 @@ def on_message(c, userdata, msg):
         track_id = tracked_object[4]
         class_index = int(tracked_object[5])
         score = tracked_object[6]
+        
         payload["data"].append({
             'trk_id': track_id,
             'x1': x1,
