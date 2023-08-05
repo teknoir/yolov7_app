@@ -17,3 +17,4 @@ Detailed references to external repositories used in this application developmen
   - **Original Author:** [samson-wang](https://github.com/samson-wang)
   - **Description:** This repository provides the function for plotting bounding boxes with memory optimization etc. We have taken a **bbox_overlaps** function from this repository and used in our exisiting application implementation.
 
+Some changes have been incorporated into the relevant sources above when including in this repo.

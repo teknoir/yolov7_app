@@ -113,11 +113,10 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-# Resetting the User Arguments
-if args["AUGMENTED_INFERENCE"] == "":
-    args["AUGMENTED_INFERENCE"] = False
-else:
-    args["AUGMENTED_INFERENCE"] = True
+# if args["AUGMENTED_INFERENCE"] == "":
+#     args["AUGMENTED_INFERENCE"] = False
+# else:
+#     args["AUGMENTED_INFERENCE"] = True
 
 if args["AGNOSTIC_NMS"] == "":
     args["AGNOSTIC_NMS"] = False
@@ -204,6 +203,7 @@ def detect_and_track(im0):
     logger.info("YOLOv7 Inference Time : {}".format(inference_time))
 
     # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
+    # loop below from: https://github.com/theos-ai/easy-yolov7/blob/main/algorithm/object_detector.py
     raw_detection = np.empty((0,6), float)
     for det in pred:
         if len(det) > 0:
@@ -212,16 +212,14 @@ def detect_and_track(im0):
                 raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
     
     tracked_objects = tracker.update(raw_detection)
-    #tracked_objects = tracker.update_multi(torch.tensor(detections), img) # multi
-    
+
     return tracked_objects
 
 
 def load_image(base64_image):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
-    image = np.array(image)
-    return image
+    return np.array(image)
 
 
 def on_message(c, userdata, msg):
