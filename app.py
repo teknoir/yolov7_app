@@ -2,7 +2,7 @@
 
 import os
 import sys
-import cv2
+# import cv2
 import json
 import time
 import base64
@@ -43,21 +43,19 @@ args = {
     # 'MODEL_VERSION': os.getenv("MODEL_VERSION", "0.1"),
     # 'MODEL_ID': os.getenv("MODEL_ID", "abc123"),
 
-    'WEIGHTS': os.getenv("WEIGHTS", "model.pt"),
+    'WEIGHTS': str(os.getenv("WEIGHTS", "model.pt")),
     'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
-    'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", 640)),
+    'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", "640")),
     'CLASS_NAMES': os.getenv("CLASS_NAMES", "obj.names"),
-    'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", 0.45)),
+    'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", "0.45")),
+    'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", "0.25")),
     # 'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
-    'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", 0.25)),
     'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT", "person,bicycle,car,motorbike,truck")),
 
-    "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", 0.5)),
-    "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", 0.8)),
-    "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", 30)),
-    "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", 10)),
-
-    "INCLUDE_IMAGE": str(os.getenv("INCLUDE_IMAGE",""))
+    "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", "0.5")),
+    "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", "0.8")),
+    "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", "30")),
+    "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10"))
 }
 
 logger = logging.getLogger(args['NAME'])
@@ -133,8 +131,7 @@ if args["CLASS_NAMES"] != "":
                 class_names.append(line.strip())
     args["CLASS_NAMES"] = class_names
 else:
-    logger.info("You must specify 'CLASS_NAMES'")
-    logger.info("App Exit!")
+    logger.error("You must specify 'CLASS_NAMES'")
     sys.exit(1)
 
 if args["CLASSES_TO_DETECT"] == "":
@@ -153,7 +150,7 @@ else:
         del cls_ids, cls_to_detect
 
 
-logger.info("Initializing Object Detection Model")
+logger.info("Loading YOLOv7 Model")
 device = select_device(args["DEVICE"])
 half = device.type != 'cpu'  # half precision only supported on CUDA
 model = attempt_load(args["WEIGHTS"], map_location=device)
@@ -201,8 +198,8 @@ def detect_and_track(im0):
                                    args["IOU_THRESHOLD"],
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
-    inference_time = time_synchronized() - t0
-    logger.info("YOLOv7 Inference Time : {}".format(inference_time))
+    #inference_time = time_synchronized() - t0
+    #logger.info("YOLOv7 Inference Time : {}".format(inference_time))
 
     # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     # loop below from: https://github.com/theos-ai/easy-yolov7/blob/main/algorithm/object_detector.py
@@ -262,9 +259,6 @@ def on_message(c, userdata, msg):
         },
     }
 
-    if args["INCLUDE_IMAGE"] != "":
-        payload["image"] = data_received["image"]
-
     for tracked_object in tracked_objects:
         x1 = tracked_object[0]
         y1 = tracked_object[1]
@@ -293,9 +287,8 @@ def on_message(c, userdata, msg):
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
-    if args["INCLUDE_IMAGE"] != "":
-        payload["image"] = "%s... - truncated for logs" % payload["image"][0:32]
-    logger.info(payload)
+    logger.info(time.perf_counter())
+    # logger.info(payload)
 
 
 if args['MQTT_VERSION'] == '5':
