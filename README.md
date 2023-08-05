@@ -55,6 +55,7 @@ Assuming you have a MQTT broker on your local network and a device that is emitt
 `MQTT_IN_0="camera/images" MQTT_SERVICE_HOST=192.168.68.104 MQTT_SERVICE_PORT=31883 WEIGHTS=weights/best_weights.pt IMG_SIZE=640 CLASS_NAMES=ppe-bbox-clean-20220821000000146/dataset/object.names python3 app.py`
 
 ## Start a build
+
 To start a cloudbuild for the CPU version of the image run:
 ```
 gcloud --project=teknoir builds submit . --config=cloudbuild_cpu.yaml --substitutions=SHORT_SHA="build-my-local-changes",BRANCH_NAME="test"
