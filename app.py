@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+from tracker.byte_tracker import BYTETracker
+from utils.datasets import letterbox
+from utils.torch_utils import select_device, time_synchronized
+from utils.general import non_max_suppression, check_img_size, scale_coords
+from models.experimental import attempt_load
 import os
 import sys
 # import cv2
@@ -9,21 +14,17 @@ import base64
 import logging
 import torch
 import torch.backends.cudnn as cudnn
-from io import BytesIO
 import numpy as np
-from PIL import Image
 import paho.mqtt.client as mqtt
+from math import dist
+from io import BytesIO
+from PIL import Image
 
 import warnings
 warnings.filterwarnings('ignore')
 
 # these imports draw from yolov7, which is cloned when the dockerfiles are built
-from models.experimental import attempt_load
-from utils.general import non_max_suppression, check_img_size, scale_coords
-from utils.torch_utils import select_device, time_synchronized
-from utils.datasets import letterbox
 
-from tracker.byte_tracker import BYTETracker
 
 APP_NAME = os.getenv('APP_NAME', 'yolov7-bytetrack')
 
@@ -188,29 +189,32 @@ def detect_and_track(im0):
     img = torch.from_numpy(img).to(device)
     img = img.half() if half else img.float()  # uint8 to fp16/32
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3: img = img.unsqueeze(0)
-    
+    if img.ndimension() == 3:
+        img = img.unsqueeze(0)
+
+    t0 = time_synchronized()
     with torch.no_grad():
-        t0 = time_synchronized()
-        pred = model(img)[0] #, augment=args["AUGMENTED_INFERENCE"])[0]
+        pred = model(img)[0]  # , augment=args["AUGMENTED_INFERENCE"])[0]
         pred = non_max_suppression(pred,
                                    args["CONF_THRESHOLD"],
                                    args["IOU_THRESHOLD"],
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
-    #inference_time = time_synchronized() - t0
-    #logger.info("YOLOv7 Inference Time : {}".format(inference_time))
 
     # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     # loop below from: https://github.com/theos-ai/easy-yolov7/blob/main/algorithm/object_detector.py
-    raw_detection = np.empty((0,6), float)
+    raw_detection = np.empty((0, 6), float)
     for det in pred:
         if len(det) > 0:
-            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+            det[:, :4] = scale_coords(
+                img.shape[2:], det[:, :4], im0.shape).round()
             for *xyxy, conf, cls in reversed(det):
-                raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
-    
+                raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(
+                    xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
+
     tracked_objects = tracker.update(raw_detection)
+
+    logger.info("YOLOv7 + ByteTrack Inference Time : {}".format(time_synchronized()-t0))
 
     return tracked_objects
 
@@ -224,8 +228,8 @@ def load_image(base64_image):
 def on_message(c, userdata, msg):
     message = str(msg.payload.decode("utf-8", "ignore"))
     # payload: {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
-    
-    try: 
+
+    try:
         data_received = json.loads(message)
     except json.JSONDecodeError as e:
         logger.error("Error decoding JSON:", e)
@@ -246,15 +250,15 @@ def on_message(c, userdata, msg):
         "data": [],
         "metadata": {
             "applicaton": {
-                "name": APP_NAME, 
+                "name": APP_NAME,
                 "version": "v1.0",
                 "processing_time": msg_time_1 - msg_time_0,
                 "input_parameters": userdata},
             "peripheral": {
                 "id": "00001",
-                "name": "parking-lot-1", 
+                "name": "parking-lot-1",
                 "type": "camera",
-                "image_height": img.shape[0], 
+                "image_height": img.shape[0],
                 "image_width": img.shape[1],
                 "camera_fps": 1},
         },
@@ -268,23 +272,32 @@ def on_message(c, userdata, msg):
         track_id = tracked_object[4]
         class_index = int(tracked_object[5])
         score = tracked_object[6]
-        
+
         payload["data"].append({
             'trk_id': track_id,
             'x1': x1,
             'y1': y1,
             'x2': x2,
             'y2': y2,
-            'x_center': int((x1 + x2) / 2),
-            'y_center': int((y1 + y2) / 2),
+            'x_center': (x1 + x2) / 2,
+            'y_center': (y1 + y2) / 2,
             'width': x2 - x1,
             'height': y2 - y1,
             'ratio': (y2 - y1) / (x2 - x1),
             'score': score,
             'area': x2 * y2,
             'label': args["CLASS_NAMES"][class_index],
-            # 'track_time': track_time
+            'distances': {}
         })
+
+    for i, p in enumerate(payload['data']):
+        pp = [p["x_center"], p["y_center"]]
+        pid = p["track_id"]
+        for s in payload['data']:
+            sid = s["track_id"]
+            if sid != pid:
+                ss = [s["x_center"], s["y_center"]]
+                payload['data'][i]['distances'][sid] = dist(pp, ss)
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
