@@ -241,6 +241,7 @@ def on_message(c, userdata, msg):
 
     payload = {
         "timestamp": data_received["timestamp"],
+        "image": data_received["image"],
         "type": "objects",
         "data": [],
         "metadata": {
@@ -255,7 +256,7 @@ def on_message(c, userdata, msg):
                 "type": "camera",
                 "image_height": img.shape[0], 
                 "image_width": img.shape[1],
-                "fps": 1},
+                "camera_fps": 1},
         },
     }
 
