@@ -16,6 +16,7 @@ from PIL import Image
 
 from tracker.byte_tracker import BYTETracker
 
+# these imports draw from yolov7, which is cloned when the dockerfiles are built
 from utils.datasets import letterbox
 from utils.torch_utils import select_device, time_synchronized
 from utils.general import non_max_suppression, check_img_size, scale_coords
@@ -23,8 +24,6 @@ from models.experimental import attempt_load
 
 import warnings
 warnings.filterwarnings('ignore')
-
-# these imports draw from yolov7, which is cloned when the dockerfiles are built
 
 
 APP_NAME = os.getenv('APP_NAME', 'yolov7-bytetrack')
