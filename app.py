@@ -13,7 +13,6 @@ import paho.mqtt.client as mqtt
 from math import dist
 from io import BytesIO
 from PIL import Image
-import threading
 
 from tracker.byte_tracker import BYTETracker
 
@@ -262,7 +261,7 @@ class TrackedObjectsBuffer:
         client.publish(args["MQTT_OUT_1"], msg)
         logger.info(f"MOVEMENT: Object({track_id})")
 
-        del self.objects(track_id)
+        del self.objects[track_id]
 
     def monitor(self, current_time):
         for track_id in self._last_updated:
