@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 
-from tracker.byte_tracker import BYTETracker
-from utils.datasets import letterbox
-from utils.torch_utils import select_device, time_synchronized
-from utils.general import non_max_suppression, check_img_size, scale_coords
-from models.experimental import attempt_load
 import os
 import sys
-# import cv2
 import json
 import time
 import base64
@@ -19,6 +13,14 @@ import paho.mqtt.client as mqtt
 from math import dist
 from io import BytesIO
 from PIL import Image
+import threading
+
+from tracker.byte_tracker import BYTETracker
+
+from utils.datasets import letterbox
+from utils.torch_utils import select_device, time_synchronized
+from utils.general import non_max_suppression, check_img_size, scale_coords
+from models.experimental import attempt_load
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -32,7 +34,8 @@ args = {
     'NAME': APP_NAME,
 
     'MQTT_IN_0': os.getenv("MQTT_IN_0", f"{APP_NAME}/images"),
-    'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
+    'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/detections"),
+    'MQTT_OUT_1': os.getenv("MQTT_OUT_0", f"{APP_NAME}/movements"),
     'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
     'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
     'MQTT_SERVICE_HOST': os.getenv('MQTT_SERVICE_HOST', '127.0.0.1'),
@@ -40,6 +43,7 @@ args = {
 
     'DEVICE': os.getenv("DEVICE", '0'),
 
+    # all of these model params are tied to the application container
     # 'MODEL_NAME': os.getenv("MODEL_NAME", "yolov7-coco-bytetrack"),
     # 'MODEL_VERSION': os.getenv("MODEL_VERSION", "0.1"),
     # 'MODEL_ID': os.getenv("MODEL_ID", "abc123"),
@@ -214,7 +218,8 @@ def detect_and_track(im0):
 
     tracked_objects = tracker.update(raw_detection)
 
-    logger.info("YOLOv7 + ByteTrack Inference Time : {}".format(time_synchronized()-t0))
+    logger.info(
+        "YOLOv7 + ByteTrack Inference Time : {}".format(time_synchronized()-t0))
 
     return tracked_objects
 
@@ -223,6 +228,50 @@ def load_image(base64_image):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
     return np.array(image)
+
+
+class TrackedObjectsBuffer:
+
+    def __init__(self):
+        self.objects = {}
+        self._last_updated = {}
+
+    def update(self, obj):
+        if obj["track_id"] not in self.objects:
+            self._enter_object(obj)
+        else:
+            self._append_object(obj)
+
+    def _append_object(self, obj):
+        # obj["_update_time"] = obj["timestamp"]
+        self.objects[obj["track_id"]].append(obj)
+        # self._last_updated[obj["track_id"]] = datetime.datetime.now()
+
+    def _enter_object(self, obj):
+        obj["start_time"] = obj["timestamp"]
+        # obj["_update_time"] = obj["timestamp"]
+        self.objects[obj["track_id"]] = [obj]
+        # self._last_updated[obj["track_id"]] = obj["timestamp"]
+
+    def _exit_object(self, track_id):
+        obj = self.objects[track_id]
+        obj["end_time"] = self.objects[track_id][-1]["timestamp"]
+        obj["duration"] = obj["end_time"] - obj["start_time"]
+
+        msg = json.dumps(obj, cls=NumpyEncoder)
+        client.publish(args["MQTT_OUT_1"], msg)
+        logger.info(f"MOVEMENT: Object({track_id})")
+
+        del self.objects(track_id)
+
+    def monitor(self, current_time):
+        for track_id in self._last_updated:
+            last_update_time = self.objects[track_id]["timestamp"]
+            if current_time - last_update_time > datetime.timedelta(seconds=5):
+                self._exit_object(track_id)
+
+
+tracked_objects_buffer = TrackedObjectsBuffer()
 
 
 def on_message(c, userdata, msg):
@@ -273,7 +322,7 @@ def on_message(c, userdata, msg):
         class_index = int(tracked_object[5])
         score = tracked_object[6]
 
-        payload["data"].append({
+        tracked_obj = {
             'trk_id': track_id,
             'x1': x1,
             'y1': y1,
@@ -288,20 +337,28 @@ def on_message(c, userdata, msg):
             'area': x2 * y2,
             'label': args["CLASS_NAMES"][class_index],
             'distances': {}
-        })
+        }
 
+        tracked_objects_buffer.update(tracked_obj)
+
+        payload["data"].append(tracked_obj)
+
+    # Why not vectorized? The overhead of reformatting this would limit performance gains.
     for i, p in enumerate(payload['data']):
-        pp = [p["x_center"], p["y_center"]]
-        pid = p["track_id"]
-        for s in payload['data']:
-            sid = s["track_id"]
-            if sid != pid:
-                ss = [s["x_center"], s["y_center"]]
-                payload['data'][i]['distances'][sid] = dist(pp, ss)
+        p_point = [p["x_center"], p["y_center"]]
+        for q in payload['data']:
+            if q["track_id"] != p["track_id"]:
+                q_point = [q["x_center"], q["y_center"]]
+                payload['data'][i]['distances'][q["track_id"]] = dist(p_point, q_point)
+    
+    # consider multi-threading this on or placing on a timeloop
+    # if timeloop, note that this is comparing data acquisition timestamps
+    tracked_objects_buffer.monitor(payload["timestamp"])
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
-    logger.info(time.perf_counter())
+    logger.info("{}: {} Objects".format(
+        time.perf_counter(), len(payload["data"])))
     # logger.info(payload)
 
 
