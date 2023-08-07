@@ -5,6 +5,7 @@ import sys
 import json
 import time
 import base64
+import gc
 import logging
 import torch
 import torch.backends.cudnn as cudnn
@@ -41,6 +42,8 @@ args = {
 
     'DEVICE': os.getenv("DEVICE", '0'),
 
+    'SHOW_DEBUG': bool(os.getenv("SHOW_DEBUG", 'False')),
+
     # all of these model params are tied to the application container
     # 'MODEL_NAME': os.getenv("MODEL_NAME", "yolov7-coco-bytetrack"),
     # 'MODEL_VERSION': os.getenv("MODEL_VERSION", "0.1"),
@@ -76,6 +79,18 @@ logger.info("TΞꓘN01R")
 
 logger.info(json.dumps(args))
 
+
+def log_gpu_memory_usage(human_readable_code_location):
+    if args["SHOW_DEBUG"]:
+        debug_msg = "{}: Mem Allocated {} - Mem Reserved {} - GC Objects {}".format(
+            human_readable_code_location,
+            torch.cuda.memory_allocated(),
+            torch.cuda.memory_reserved(),
+            gc.get_count())
+        logger.debug(debug_msg)
+
+
+log_gpu_memory_usage("init")
 
 def error_str(rc):
     return '{}: {}'.format(rc, mqtt.error_string(rc))
@@ -175,6 +190,8 @@ if device.type != 'cpu':
         next(model.parameters())))  # run once
 model.eval()
 
+log_gpu_memory_usage("model")
+
 tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
                       match_thresh=args["TRACKER_MATCH_THRESHOLD"],
                       track_buffer=args["TRACKER_BUFFER"],
@@ -182,17 +199,23 @@ tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
 
 
 def detect_and_track(im0):
+
+    log_gpu_memory_usage("detect_init")
+
     img = im0.copy()
     img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
     #img = cv2.resize(np.array(img), (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
     # img = np.expand_dims(img, axis=0)
+    
     img = torch.from_numpy(img).to(device)
     img = img.half() if half else img.float()  # uint8 to fp16/32
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
+
+    log_gpu_memory_usage("img_loaded")
 
     t0 = time_synchronized()
     with torch.no_grad():
@@ -202,6 +225,16 @@ def detect_and_track(im0):
                                    args["IOU_THRESHOLD"],
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
+
+    img.detach().cpu()
+
+    log_gpu_memory_usage("img_detach")
+
+    del img # delete from allocated memory
+    torch.cuda.empty_cache() # delete from reserved memory
+    gc.collect()
+
+    log_gpu_memory_usage("del_img")
 
     # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     # loop below from: https://github.com/theos-ai/easy-yolov7/blob/main/algorithm/object_detector.py
