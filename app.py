@@ -226,16 +226,6 @@ def detect_and_track(im0):
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
 
-    img.detach().cpu()
-
-    log_gpu_memory_usage("img_detach")
-
-    del img # delete from allocated memory
-    torch.cuda.empty_cache() # delete from reserved memory
-    gc.collect()
-
-    log_gpu_memory_usage("del_img")
-
     # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
     # loop below from: https://github.com/theos-ai/easy-yolov7/blob/main/algorithm/object_detector.py
     raw_detection = np.empty((0, 6), float)
@@ -251,6 +241,19 @@ def detect_and_track(im0):
 
     logger.info(
         "YOLOv7 + ByteTrack Inference Time : {}".format(time_synchronized()-t0))
+
+    log_gpu_memory_usage("tracked")
+
+    img.detach().cpu()
+
+    log_gpu_memory_usage("img_detach")
+
+    del img # delete from allocated memory
+
+    torch.cuda.empty_cache() # delete from reserved memory
+    gc.collect()
+
+    log_gpu_memory_usage("del_img")
 
     return tracked_objects
 
