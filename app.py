@@ -187,7 +187,6 @@ else:
 names = model.module.names if hasattr(model, 'module') else model.names
 if half:
     model.half()  # to FP16
-
 if device.type != 'cpu':
     model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(
         next(model.parameters())))  # run once
@@ -310,6 +309,8 @@ class TrackedObjectsBuffer:
 
         movement["trajectory"] = [(obj["x_center"],obj["y_center"]) for obj in self.objects[obj_id]]
         movement["history"] = self.objects[obj_id]
+
+        movement["metadata"] = {"parameters": args}
         
         msg = json.dumps(movement, cls=NumpyEncoder)
         client.publish(args["MQTT_OUT_1"], msg)
@@ -356,8 +357,7 @@ def on_message(c, userdata, msg):
             "applicaton": {
                 "name": APP_NAME,
                 "version": "v1.0",
-                "processing_time": msg_time_1 - msg_time_0,
-                "input_parameters": userdata},
+                "processing_time": msg_time_1 - msg_time_0},
             "peripheral": {
                 "id": "00001",
                 "name": "parking-lot-1",
@@ -378,6 +378,7 @@ def on_message(c, userdata, msg):
         score = tracked_object[6]
 
         tracked_obj = {
+            'timestamp': data_received["timestamp"],
             'id': id,
             'x1': x1,
             'y1': y1,
