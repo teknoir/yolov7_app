@@ -64,7 +64,7 @@ args = {
     "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", "30")),
     "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10")),
 
-    "EXIT_AFTER_SECONDS": float(os.getenv("EXIT_AFTER_SECONDS",5.0))
+    "EXIT_AFTER_SECONDS": float(os.getenv("EXIT_AFTER_SECONDS", 5.0))
 }
 
 logger = logging.getLogger(args['NAME'])
@@ -94,6 +94,7 @@ def log_gpu_memory_usage(human_readable_code_location):
 
 
 log_gpu_memory_usage("init")
+
 
 def error_str(rc):
     return '{}: {}'.format(rc, mqtt.error_string(rc))
@@ -210,13 +211,13 @@ def detect_and_track(im0):
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
     # img = np.expand_dims(img, axis=0)
-    
+
     img = torch.from_numpy(img).to(device)
     img = img.half() if half else img.float()  # uint8 to fp16/32
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
-    
+
     log_gpu_memory_usage("img_loaded")
 
     t0 = time_synchronized()
@@ -250,9 +251,9 @@ def detect_and_track(im0):
 
     log_gpu_memory_usage("img_detach")
 
-    del img # delete from allocated memory
+    del img  # delete from allocated memory
 
-    torch.cuda.empty_cache() # delete from reserved memory
+    torch.cuda.empty_cache()  # delete from reserved memory
     gc.collect()
 
     log_gpu_memory_usage("del_img")
@@ -290,7 +291,8 @@ class TrackedObjectsBuffer:
         movement["end_time"] = self.objects[obj_id][-1]["timestamp"]
         # ASSUMPTION: timestamps are in javascript Date.now() format.
         end = datetime.datetime.fromtimestamp(int(movement["end_time"])/1000.0)
-        start = datetime.datetime.fromtimestamp(int(movement["start_time"])/1000.0)
+        start = datetime.datetime.fromtimestamp(
+            int(movement["start_time"])/1000.0)
         movement["duration"] = (end - start).total_seconds()
         movement["start_time_iso"] = start.isoformat()
         movement["end_time_iso"] = end.isoformat()
@@ -298,20 +300,26 @@ class TrackedObjectsBuffer:
         labels = [obj["label"] for obj in self.objects[obj_id]]
         movement["label"] = max(set(labels), key=labels.count)
         movement["labels"] = labels
-        
-        movement["length"] = len(self.objects[obj_id])
-        
-        movement["width_average"] = np.mean([obj["width"] for obj in self.objects[obj_id]])
-        movement["height_average"] = np.mean([obj["height"] for obj in self.objects[obj_id]])
-        movement["ratio_average"] = np.mean([obj["ratio"] for obj in self.objects[obj_id]])
-        movement["area_average"] = np.mean([obj['area'] for obj in self.objects[obj_id]])
-        movement["score_average"] = np.mean([obj['score'] for obj in self.objects[obj_id]])
 
-        movement["trajectory"] = [(obj["x_center"],obj["y_center"]) for obj in self.objects[obj_id]]
+        movement["length"] = len(self.objects[obj_id])
+
+        movement["width_average"] = np.mean(
+            [obj["width"] for obj in self.objects[obj_id]])
+        movement["height_average"] = np.mean(
+            [obj["height"] for obj in self.objects[obj_id]])
+        movement["ratio_average"] = np.mean(
+            [obj["ratio"] for obj in self.objects[obj_id]])
+        movement["area_average"] = np.mean(
+            [obj['area'] for obj in self.objects[obj_id]])
+        movement["score_average"] = np.mean(
+            [obj['score'] for obj in self.objects[obj_id]])
+
+        movement["trajectory"] = [(obj["x_center"], obj["y_center"])
+                                  for obj in self.objects[obj_id]]
         movement["history"] = self.objects[obj_id]
 
         movement["metadata"] = {"parameters": args}
-        
+
         msg = json.dumps(movement, cls=NumpyEncoder)
         client.publish(args["MQTT_OUT_1"], msg)
         logger.info(f"MOVEMENT: Object({id})")
@@ -320,7 +328,7 @@ class TrackedObjectsBuffer:
 
     def monitor(self, current_time):
         now = datetime.datetime.fromtimestamp(int(current_time)/1000.0)
-        for obj_id in self.objects:
+        for obj_id in list(self.objects):
             last_updated = self.objects[obj_id][-1]["timestamp"]
             then = datetime.datetime.fromtimestamp(int(last_updated)/1000.0)
             if (now - then) > datetime.timedelta(seconds=args["EXIT_AFTER_SECONDS"]):
@@ -403,8 +411,9 @@ def on_message(c, userdata, msg):
         for q in payload['data']:
             if q["id"] != p["id"]:
                 q_point = [q["x_center"], q["y_center"]]
-                payload['data'][i]['distances'][q["id"]] = dist(p_point, q_point)
-    
+                payload['data'][i]['distances'][q["id"]] = dist(
+                    p_point, q_point)
+
         tracked_objects_buffer.update(payload['data'][i])
 
     msg = json.dumps(payload, cls=NumpyEncoder)
