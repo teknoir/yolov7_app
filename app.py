@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import time
+import datetime
 import base64
 import gc
 import logging
@@ -61,7 +62,9 @@ args = {
     "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", "0.5")),
     "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", "0.8")),
     "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", "30")),
-    "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10"))
+    "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10")),
+
+    "EXIT_AFTER_SECONDS": float(os.getenv("EXIT_AFTER_SECONDS",5.0))
 }
 
 logger = logging.getLogger(args['NAME'])
@@ -214,7 +217,7 @@ def detect_and_track(im0):
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
-
+    
     log_gpu_memory_usage("img_loaded")
 
     t0 = time_synchronized()
@@ -268,41 +271,59 @@ class TrackedObjectsBuffer:
 
     def __init__(self):
         self.objects = {}
-        self._last_updated = {}
 
     def update(self, obj):
-        if obj["track_id"] not in self.objects:
+        if obj["id"] not in self.objects:
             self._enter_object(obj)
         else:
             self._append_object(obj)
 
     def _append_object(self, obj):
-        # obj["_update_time"] = obj["timestamp"]
-        self.objects[obj["track_id"]].append(obj)
-        # self._last_updated[obj["track_id"]] = datetime.datetime.now()
+        self.objects[obj["id"]].append(obj)
 
     def _enter_object(self, obj):
-        obj["start_time"] = obj["timestamp"]
-        # obj["_update_time"] = obj["timestamp"]
-        self.objects[obj["track_id"]] = [obj]
-        # self._last_updated[obj["track_id"]] = obj["timestamp"]
+        self.objects[obj["id"]] = [obj]
 
-    def _exit_object(self, track_id):
-        obj = self.objects[track_id]
-        obj["end_time"] = self.objects[track_id][-1]["timestamp"]
-        obj["duration"] = obj["end_time"] - obj["start_time"]
+    def _exit_object(self, obj_id):
+        movement = {}
+        movement["id"] = obj_id
+        movement["start_time"] = self.objects[obj_id][0]["timestamp"]
+        movement["end_time"] = self.objects[obj_id][-1]["timestamp"]
+        # ASSUMPTION: timestamps are in javascript Date.now() format.
+        end = datetime.datetime.fromtimestamp(int(movement["end_time"])/1000.0)
+        start = datetime.datetime.fromtimestamp(int(movement["start_time"])/1000.0)
+        movement["duration"] = (end - start).total_seconds()
+        movement["start_time_iso"] = start.isoformat()
+        movement["end_time_iso"] = end.isoformat()
 
-        msg = json.dumps(obj, cls=NumpyEncoder)
+        labels = [obj["label"] for obj in self.objects[obj_id]]
+        movement["label"] = max(set(labels), key=labels.count)
+        movement["labels"] = labels
+        
+        movement["length"] = len(self.objects[obj_id])
+        
+        movement["width_average"] = np.mean([obj["width"] for obj in self.objects[obj_id]])
+        movement["height_average"] = np.mean([obj["height"] for obj in self.objects[obj_id]])
+        movement["ratio_average"] = np.mean([obj["ratio"] for obj in self.objects[obj_id]])
+        movement["area_average"] = np.mean([obj['area'] for obj in self.objects[obj_id]])
+        movement["score_average"] = np.mean([obj['score'] for obj in self.objects[obj_id]])
+
+        movement["trajectory"] = [(obj["x_center"],obj["y_center"]) for obj in self.objects[obj_id]]
+        movement["history"] = self.objects[obj_id]
+        
+        msg = json.dumps(movement, cls=NumpyEncoder)
         client.publish(args["MQTT_OUT_1"], msg)
-        logger.info(f"MOVEMENT: Object({track_id})")
+        logger.info(f"MOVEMENT: Object({id})")
 
-        del self.objects[track_id]
+        del self.objects[obj_id]
 
     def monitor(self, current_time):
-        for track_id in self._last_updated:
-            last_update_time = self.objects[track_id]["timestamp"]
-            if current_time - last_update_time > datetime.timedelta(seconds=5):
-                self._exit_object(track_id)
+        now = datetime.datetime.fromtimestamp(int(current_time)/1000.0)
+        for obj_id in self.objects:
+            last_updated = self.objects[obj_id][-1]["timestamp"]
+            then = datetime.datetime.fromtimestamp(int(last_updated)/1000.0)
+            if (now - then) > datetime.timedelta(seconds=args["EXIT_AFTER_SECONDS"]):
+                self._exit_object(obj_id)
 
 
 tracked_objects_buffer = TrackedObjectsBuffer()
@@ -310,7 +331,7 @@ tracked_objects_buffer = TrackedObjectsBuffer()
 
 def on_message(c, userdata, msg):
     message = str(msg.payload.decode("utf-8", "ignore"))
-    # payload: {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
+    # {"timestamp": "<js_epoch_time>", "image": "<base64_mime>", "camera_id": "...", "camera_name": "..."}
 
     try:
         data_received = json.loads(message)
@@ -352,12 +373,12 @@ def on_message(c, userdata, msg):
         y1 = tracked_object[1]
         x2 = tracked_object[2]
         y2 = tracked_object[3]
-        track_id = tracked_object[4]
+        id = tracked_object[4]
         class_index = int(tracked_object[5])
         score = tracked_object[6]
 
         tracked_obj = {
-            'trk_id': track_id,
+            'id': id,
             'x1': x1,
             'y1': y1,
             'x2': x2,
@@ -369,31 +390,32 @@ def on_message(c, userdata, msg):
             'ratio': (y2 - y1) / (x2 - x1),
             'score': score,
             'area': x2 * y2,
-            'label': args["CLASS_NAMES"][class_index],
-            'distances': {}
+            'label': args["CLASS_NAMES"][class_index]
         }
-
-        tracked_objects_buffer.update(tracked_obj)
 
         payload["data"].append(tracked_obj)
 
     # Why not vectorized? The overhead of reformatting this would limit performance gains.
     for i, p in enumerate(payload['data']):
+        payload['data'][i]['distances'] = {}
         p_point = [p["x_center"], p["y_center"]]
         for q in payload['data']:
-            if q["track_id"] != p["track_id"]:
+            if q["id"] != p["id"]:
                 q_point = [q["x_center"], q["y_center"]]
-                payload['data'][i]['distances'][q["track_id"]] = dist(p_point, q_point)
+                payload['data'][i]['distances'][q["id"]] = dist(p_point, q_point)
     
-    # consider multi-threading this on or placing on a timeloop
-    # if timeloop, note that this is comparing data acquisition timestamps
-    tracked_objects_buffer.monitor(payload["timestamp"])
+        tracked_objects_buffer.update(payload['data'][i])
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
     logger.info("{}: {} Objects".format(
         time.perf_counter(), len(payload["data"])))
     # logger.info(payload)
+
+    # consider multi-threading this on or placing on a timeloop
+    # if timeloop, note that this is comparing data acquisition timestamps
+    # this could also be a secondary app, but we'd need to monitor the historian on a loop instead
+    tracked_objects_buffer.monitor(payload["timestamp"])
 
 
 if args['MQTT_VERSION'] == '5':
