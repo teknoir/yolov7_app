@@ -165,7 +165,7 @@ def detect(im0):
         if len(det) > 0:
             det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
             for *xyxy, confidence, class_index in reversed(det):
-                if class_index in args["CLASSES_TO_DETECT"]:
+                if int(class_index) in args["CLASSES_TO_DETECT"]:
                     x1 = xyxy[0]
                     y1 = xyxy[1]
                     x2 = xyxy[2]
@@ -175,14 +175,14 @@ def detect(im0):
 
                     obj = {"x1": int(x1), "y1": int(y1), 
                            "x2": int(x2), "y2": int(y2),
-                           "area": width * height,
-                           "ratio": height / width,
-                           "x_center": (x1 + x2) / 2.,
-                           "y_center": (y1 + y2) / 2.,
+                           "area": float(width * height),
+                           "ratio": float(height / width),
+                           "x_center": float((x1 + x2) / 2.),
+                           "y_center": float((y1 + y2) / 2.),
                            "score": round(float(confidence),2),
                            "label": args["CLASS_NAMES"][int(class_index)],
-                           "class_id": class_index}
-
+                           "class_id": int(class_index)}
+                    
                     detected_objects.append(obj)
 
     logger.info("{} Objects - Time: {}".format(len(detected_objects), inference_time))
@@ -206,7 +206,6 @@ def load_image(base64_image):
 
 def on_message(c, userdata, msg):
     message = str(msg.payload.decode("utf-8", "ignore"))
-    # {"timestamp": "<js_epoch_time>", "image": "<base64_mime>", "camera_id": "...", "camera_name": "..."}
 
     try:
         data_received = json.loads(message)
@@ -217,6 +216,7 @@ def on_message(c, userdata, msg):
     msg_time_0 = time.perf_counter()
 
     img_array = load_image(data_received["image"])
+
     detected_objects = detect(img_array)
 
     msg_time_1 = time.perf_counter()
