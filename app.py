@@ -228,7 +228,7 @@ def on_message(c, userdata, msg):
         "timestamp": data_received["timestamp"],
         "image": data_received["image"],
         "type": "objects",
-        "detections": detected_objects,
+        "data": detected_objects,
         "metadata": {
             "applicatons": {
                 "name": APP_NAME, 
