@@ -199,9 +199,11 @@ def load_image(base64_image):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
     im0 = np.array(image)
+    height = im0.shape[0]
+    width = im0.shape[1]
     im0 = letterbox(im0, imgsz, auto=imgsz != 1280)[0]
     im0 = im0[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3 x IMG_SIZE x IMG_SIZE
-    return im0
+    return im0, height, width
 
 
 def on_message(c, userdata, msg):
@@ -215,7 +217,7 @@ def on_message(c, userdata, msg):
 
     msg_time_0 = time.perf_counter()
 
-    img_array = load_image(data_received["image"])
+    img_array, orig_height, orig_width = load_image(data_received["image"])
 
     detected_objects = detect(img_array)
 
@@ -235,8 +237,9 @@ def on_message(c, userdata, msg):
                 "name": data_received["peripheral_name"],
                 "type": data_received["peripheral_type"]},
             "processing": {
-                'image_height': img_array.shape[0], 
-                'image_width': img_array.shape[1]}
+                'image_channels'
+                'image_height': orig_height, 
+                'image_width': orig_width}
         }
     }
 
