@@ -288,6 +288,7 @@ class TrackedObjectsBuffer:
         self.objects[obj["id"]].append(obj)
 
     def _enter_object(self, obj):
+        logger.info(f"ENTER: {obj['label']} - {obj['id']}")
         self.objects[obj["id"]] = [obj]
 
     def _exit_object(self, obj_id):
@@ -328,7 +329,8 @@ class TrackedObjectsBuffer:
 
         msg = json.dumps(movement, cls=NumpyEncoder)
         client.publish(args["MQTT_OUT_1"], msg)
-        logger.info(f"MOVEMENT: Object({obj_id})")
+
+        logger.info(f"EXIT: {movement['label']} - {obj_id}")
 
         del self.objects[obj_id]
 
