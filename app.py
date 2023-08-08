@@ -77,7 +77,11 @@ formatter = logging.Formatter(
     '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
-logger.setLevel(logging.INFO)
+
+if args["SHOW_DEBUG"]:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
 
 logger.info("TΞꓘN01R")
 logger.info("TΞꓘN01R")
@@ -87,13 +91,12 @@ logger.info(json.dumps(args))
 
 
 def log_gpu_memory_usage(human_readable_code_location):
-    if args["SHOW_DEBUG"]:
-        debug_msg = "{}: Mem Allocated {} - Mem Reserved {} - GC Objects {}".format(
-            human_readable_code_location,
-            torch.cuda.memory_allocated(),
-            torch.cuda.memory_reserved(),
-            gc.get_count())
-        logger.debug(debug_msg)
+    debug_msg = "{}: Mem Allocated {} - Mem Reserved {} - GC Objects {}".format(
+        human_readable_code_location,
+        torch.cuda.memory_allocated(),
+        torch.cuda.memory_reserved(),
+        gc.get_count())
+    logger.debug(debug_msg)
 
 
 log_gpu_memory_usage("init")
@@ -325,7 +328,7 @@ class TrackedObjectsBuffer:
 
         msg = json.dumps(movement, cls=NumpyEncoder)
         client.publish(args["MQTT_OUT_1"], msg)
-        logger.info(f"MOVEMENT: Object({id})")
+        logger.info(f"MOVEMENT: Object({obj_id})")
 
         del self.objects[obj_id]
 
@@ -421,7 +424,8 @@ def on_message(c, userdata, msg):
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
-    logger.info("{}: {} Objects".format(
+
+    logger.debug("{}: {} Objects".format(
         time.perf_counter(), len(payload["data"])))
     # logger.info(payload)
 
