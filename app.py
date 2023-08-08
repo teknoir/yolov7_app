@@ -232,7 +232,7 @@ def on_message(c, userdata, msg):
                 "version": "v1.0"},
             "peripheral": {
                 "id": data_received["peripheral_id"],
-                "name": data_received["periphral_name"],
+                "name": data_received["peripheral_name"],
                 "type": data_received["peripheral_type"]},
             "processing": {
                 'image_height': img_array.shape[0], 
