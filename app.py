@@ -43,7 +43,7 @@ args = {
 
     'DEVICE': os.getenv("DEVICE", '0'),
 
-    'SHOW_DEBUG': bool(os.getenv("SHOW_DEBUG", 'False')),
+    # 'SHOW_DEBUG': bool(os.getenv("SHOW_DEBUG", 'False')),
 
     # all of these model params are tied to the application container
     # 'MODEL_NAME': os.getenv("MODEL_NAME", "yolov7-coco-bytetrack"),
@@ -69,19 +69,19 @@ args = {
 
 logger = logging.getLogger(args['NAME'])
 ch = logging.StreamHandler(sys.stdout)
-if args["SHOW_DEBUG"]:
-    ch.setLevel(logging.DEBUG)
-else:
-    ch.setLevel(logging.INFO)
+# if args["SHOW_DEBUG"] == True:
+#     ch.setLevel(logging.DEBUG)
+# else:
+ch.setLevel(logging.INFO)
 formatter = logging.Formatter(
     '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-if args["SHOW_DEBUG"]:
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.INFO)
+# if args["SHOW_DEBUG"] == True:
+#     logger.setLevel(logging.DEBUG)
+# else:
+logger.setLevel(logging.INFO)
 
 logger.info("TΞꓘN01R")
 logger.info("TΞꓘN01R")
@@ -89,17 +89,16 @@ logger.info("TΞꓘN01R")
 
 logger.info(json.dumps(args))
 
+# def log_gpu_memory_usage(human_readable_code_location):
+#     debug_msg = "{}: Mem Allocated {} - Mem Reserved {} - GC Objects {}".format(
+#         human_readable_code_location,
+#         torch.cuda.memory_allocated(),
+#         torch.cuda.memory_reserved(),
+#         gc.get_count())
+#     logger.debug(debug_msg)
 
-def log_gpu_memory_usage(human_readable_code_location):
-    debug_msg = "{}: Mem Allocated {} - Mem Reserved {} - GC Objects {}".format(
-        human_readable_code_location,
-        torch.cuda.memory_allocated(),
-        torch.cuda.memory_reserved(),
-        gc.get_count())
-    logger.debug(debug_msg)
 
-
-log_gpu_memory_usage("init")
+# log_gpu_memory_usage("init")
 
 
 def error_str(rc):
@@ -199,7 +198,7 @@ if device.type != 'cpu':
         next(model.parameters())))  # run once
 model.eval()
 
-log_gpu_memory_usage("model")
+# log_gpu_memory_usage("model")
 
 tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
                       match_thresh=args["TRACKER_MATCH_THRESHOLD"],
@@ -209,7 +208,7 @@ tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
 
 def detect_and_track(im0):
 
-    log_gpu_memory_usage("detect_init")
+    # log_gpu_memory_usage("detect_init")
 
     img = im0.copy()
     img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
@@ -224,7 +223,7 @@ def detect_and_track(im0):
     if img.ndimension() == 3:
         img = img.unsqueeze(0)
 
-    log_gpu_memory_usage("img_loaded")
+    # log_gpu_memory_usage("img_loaded")
 
     t0 = time_synchronized()
     with torch.no_grad():
@@ -251,18 +250,18 @@ def detect_and_track(im0):
     logger.info(
         "YOLOv7 + ByteTrack Inference Time : {}".format(time_synchronized()-t0))
 
-    log_gpu_memory_usage("tracked")
+    # log_gpu_memory_usage("tracked")
 
     img.detach().cpu()
 
-    log_gpu_memory_usage("img_detach")
+    # log_gpu_memory_usage("img_detach")
 
     del img  # delete from allocated memory
 
     torch.cuda.empty_cache()  # delete from reserved memory
     gc.collect()
 
-    log_gpu_memory_usage("del_img")
+    # log_gpu_memory_usage("del_img")
 
     return tracked_objects
 
@@ -290,7 +289,7 @@ class TrackedObjectsBuffer:
     def _enter_object(self, obj):
         logger.info(f"ENTER: {obj['label']} - {obj['id']}")
         self.objects[obj["id"]] = [obj]
-
+    
     def _exit_object(self, obj_id):
         movement = {}
         movement["id"] = obj_id
@@ -307,7 +306,7 @@ class TrackedObjectsBuffer:
         labels = [obj["label"] for obj in self.objects[obj_id]]
         movement["label"] = max(set(labels), key=labels.count)
         movement["labels"] = labels
-
+        
         movement["length"] = len(self.objects[obj_id])
 
         movement["width_average"] = np.mean(
@@ -325,7 +324,12 @@ class TrackedObjectsBuffer:
                                   for obj in self.objects[obj_id]]
         movement["history"] = self.objects[obj_id]
 
-        movement["metadata"] = {"parameters": args}
+        movement["metadata"] = {
+            "parameters": args,
+            "applicaton": {
+                "name": APP_NAME,
+                "version": "v1.0"}
+        }
 
         msg = json.dumps(movement, cls=NumpyEncoder)
         client.publish(args["MQTT_OUT_1"], msg)
@@ -427,8 +431,8 @@ def on_message(c, userdata, msg):
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
 
-    logger.debug("{}: {} Objects".format(
-        time.perf_counter(), len(payload["data"])))
+    # logger.debug("{}: {} Objects".format(
+    #     time.perf_counter(), len(payload["data"])))
     # logger.info(payload)
 
     # consider multi-threading this on or placing on a timeloop
