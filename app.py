@@ -69,7 +69,10 @@ args = {
 
 logger = logging.getLogger(args['NAME'])
 ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.INFO)
+if args["SHOW_DEBUG"]:
+    ch.setLevel(logging.DEBUG)
+else:
+    ch.setLevel(logging.INFO)
 formatter = logging.Formatter(
     '[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s')
 ch.setFormatter(formatter)
