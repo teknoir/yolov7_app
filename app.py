@@ -35,7 +35,7 @@ args = {
 
     'MQTT_IN_0': os.getenv("MQTT_IN_0", f"{APP_NAME}/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/detections"),
-    'MQTT_OUT_1': os.getenv("MQTT_OUT_0", f"{APP_NAME}/movements"),
+    'MQTT_OUT_1': os.getenv("MQTT_OUT_1", f"{APP_NAME}/movements"),
     'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
     'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
     'MQTT_SERVICE_HOST': os.getenv('MQTT_SERVICE_HOST', '127.0.0.1'),
