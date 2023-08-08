@@ -13,7 +13,6 @@ RUN pip install --no-cache -r requirements.txt paho.mqtt Pillow>=9.1.0 \
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
-ADD tracker tracker/
 ADD app.py .
 
 CMD ["python3", "app.py"]
