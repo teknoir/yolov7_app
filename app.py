@@ -143,7 +143,10 @@ model.eval()
 
 
 def detect(im0):
-    img = np.ascontiguousarray(im0.copy())
+    img = im0.copy()
+    img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
+    img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3 x IMG_SIZE x IMG_SIZE
+    img = np.ascontiguousarray(img)
     img = torch.from_numpy(img).to(device)
     img = img.half() if half else img.float()  # uint8 to fp16/32
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
@@ -201,8 +204,6 @@ def load_image(base64_image):
     im0 = np.array(image)
     height = im0.shape[0]
     width = im0.shape[1]
-    im0 = letterbox(im0, imgsz, auto=imgsz != 1280)[0]
-    im0 = im0[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3 x IMG_SIZE x IMG_SIZE
     return im0, height, width
 
 
@@ -237,7 +238,6 @@ def on_message(c, userdata, msg):
                 "name": data_received["peripheral_name"],
                 "type": data_received["peripheral_type"]},
             "processing": {
-                'image_channels'
                 'image_height': orig_height, 
                 'image_width': orig_width}
         }
