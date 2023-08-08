@@ -28,4 +28,3 @@ ADD $CLASS_NAMES_FILE $CLASS_NAMES
 # This is fine for local development, but not for production
 # Only the model, weight and class names should be added here
 ADD app.py /usr/src/app/app.py
-ADD tracker/ /usr/src/app/tracker/
