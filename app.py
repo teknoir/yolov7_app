@@ -52,7 +52,7 @@ args = {
 
     'WEIGHTS': str(os.getenv("WEIGHTS", "model.pt")),
     'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
-    'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", "640")),
+    'IMG_SIZE': int(os.getenv("IMG_SIZE", "640")),
     'CLASS_NAMES': os.getenv("CLASS_NAMES", "obj.names"),
     'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", "0.45")),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", "0.25")),
