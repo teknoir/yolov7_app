@@ -164,7 +164,10 @@ def detect(im0):
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
 
+        img.detach().cpu()
+
         inference_time = time.perf_counter()-t0
+        
         detected_objects = []
         for det in pred:
             if len(det) > 0:
@@ -179,20 +182,20 @@ def detect(im0):
                         height = y2 - y1
 
                         obj = {"x1": int(x1), "y1": int(y1), 
-                            "x2": int(x2), "y2": int(y2),
-                            "area": float(width * height),
-                            "ratio": float(height / width),
-                            "x_center": float((x1 + x2) / 2.),
-                            "y_center": float((y1 + y2) / 2.),
-                            "score": round(float(confidence),2),
-                            "label": args["CLASS_NAMES"][int(class_index)],
-                            "class_id": int(class_index)}
+                               "x2": int(x2), "y2": int(y2),
+                               "area": float(width * height),
+                               "ratio": float(height / width),
+                               "x_center": float((x1 + x2) / 2.),
+                               "y_center": float((y1 + y2) / 2.),
+                               "score": round(float(confidence),2),
+                               "label": args["CLASS_NAMES"][int(class_index)],
+                               "class_id": int(class_index)}
                         
                         detected_objects.append(obj)
 
         logger.info("{} Objects - Time: {}".format(len(detected_objects), inference_time))
-
-    # img.detach().cpu()
+    
+    # img.detach().cpu()    
     # del img
     # torch.cuda.empty_cache()
     # gc.collect()
