@@ -145,16 +145,18 @@ model.eval()
 def detect(im0):
     img = im0.copy()
     img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
-    img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3 x IMG_SIZE x IMG_SIZE
+    img = img[:, :, ::-1].transpose(2, 0, 1)
     img = np.ascontiguousarray(img)
-    img = torch.from_numpy(img).to(device)
-    img = img.half() if half else img.float()  # uint8 to fp16/32
-    img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3:
-        img = img.unsqueeze(0)
 
-    t0 = time.perf_counter()
     with torch.no_grad():
+        img = torch.from_numpy(img).to(device)
+        img = img.half() if half else img.float()  # uint8 to fp16/32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3:
+            img = img.unsqueeze(0)
+
+        t0 = time.perf_counter()
+
         pred = model(img, augment=args["AUGMENTED_INFERENCE"])[0]
         pred = non_max_suppression(pred,
                                    args["CONF_THRESHOLD"],
@@ -162,38 +164,38 @@ def detect(im0):
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
 
-    inference_time = time.perf_counter()-t0
-    detected_objects = []
-    for det in pred:
-        if len(det) > 0:
-            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-            for *xyxy, confidence, class_index in reversed(det):
-                if int(class_index) in args["CLASSES_TO_DETECT"]:
-                    x1 = xyxy[0]
-                    y1 = xyxy[1]
-                    x2 = xyxy[2]
-                    y2 = xyxy[3]
-                    width = x2 - x1
-                    height = y2 - y1
+        inference_time = time.perf_counter()-t0
+        detected_objects = []
+        for det in pred:
+            if len(det) > 0:
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                for *xyxy, confidence, class_index in reversed(det):
+                    if int(class_index) in args["CLASSES_TO_DETECT"]:
+                        x1 = xyxy[0]
+                        y1 = xyxy[1]
+                        x2 = xyxy[2]
+                        y2 = xyxy[3]
+                        width = x2 - x1
+                        height = y2 - y1
 
-                    obj = {"x1": int(x1), "y1": int(y1), 
-                           "x2": int(x2), "y2": int(y2),
-                           "area": float(width * height),
-                           "ratio": float(height / width),
-                           "x_center": float((x1 + x2) / 2.),
-                           "y_center": float((y1 + y2) / 2.),
-                           "score": round(float(confidence),2),
-                           "label": args["CLASS_NAMES"][int(class_index)],
-                           "class_id": int(class_index)}
-                    
-                    detected_objects.append(obj)
+                        obj = {"x1": int(x1), "y1": int(y1), 
+                            "x2": int(x2), "y2": int(y2),
+                            "area": float(width * height),
+                            "ratio": float(height / width),
+                            "x_center": float((x1 + x2) / 2.),
+                            "y_center": float((y1 + y2) / 2.),
+                            "score": round(float(confidence),2),
+                            "label": args["CLASS_NAMES"][int(class_index)],
+                            "class_id": int(class_index)}
+                        
+                        detected_objects.append(obj)
 
-    logger.info("{} Objects - Time: {}".format(len(detected_objects), inference_time))
+        logger.info("{} Objects - Time: {}".format(len(detected_objects), inference_time))
 
-    img.detach().cpu()
-    del img
-    torch.cuda.empty_cache()
-    gc.collect()
+    # img.detach().cpu()
+    # del img
+    # torch.cuda.empty_cache()
+    # gc.collect()
 
     return detected_objects
 
@@ -208,15 +210,15 @@ def load_image(base64_image):
 
 
 def on_message(c, userdata, msg):
-    message = str(msg.payload.decode("utf-8", "ignore"))
 
+    msg_time_0 = time.perf_counter()
+
+    message = str(msg.payload.decode("utf-8", "ignore"))
     try:
         data_received = json.loads(message)
     except json.JSONDecodeError as e:
         logger.error("Error decoding JSON:", e)
         return
-
-    msg_time_0 = time.perf_counter()
 
     img_array, orig_height, orig_width = load_image(data_received["image"])
 
@@ -239,7 +241,8 @@ def on_message(c, userdata, msg):
                 "type": data_received["peripheral_type"]},
             "processing": {
                 'image_height': orig_height, 
-                'image_width': orig_width}
+                'image_width': orig_width,
+                'runtime': msg_time_1 - msg_time_0}
         }
     }
 
