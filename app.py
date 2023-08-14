@@ -277,10 +277,7 @@ def on_message(c, userdata, msg):
         logger.error(f"Could not load image. Error: {e}")
         return
 
-    tracked_objects = detect_and_track(img_array, 
-                                       data_received["timestamp"],
-                                       orig_height,
-                                       orig_width)
+    tracked_objects = detect_and_track(img_array)
 
     runtime =  time.perf_counter() - msg_time_0
 
