@@ -180,8 +180,6 @@ def detect_and_track(im0):
         inference_time = time.perf_counter()-t0
 
         raw_detections = np.empty((0, 6), float)
-
-        detected_objects = []
         for det in pred:
             if len(det) > 0:
                 det[:, :4] = scale_coords(
@@ -198,10 +196,8 @@ def detect_and_track(im0):
 
         tracked_objects = tracker.update(raw_detections)
 
-
-
     logger.info(
-        "{} Objects - Time: {}".format(len(detected_objects), inference_time))
+        "{} Objects - Time: {}".format(len(tracked_objects), inference_time))
 
     # img.detach().cpu()
     # del img
