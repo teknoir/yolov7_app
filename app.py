@@ -5,8 +5,9 @@ import sys
 import json
 import time
 import base64
-import gc
+# import gc
 import logging
+from datetime import timezone, datetime
 import torch
 import torch.backends.cudnn as cudnn
 import numpy as np
@@ -25,11 +26,12 @@ warnings.filterwarnings('ignore')
 
 
 APP_NAME = os.getenv('APP_NAME', 'yolov7')
+APP_VERSION = os.getenv('APP_VERSION', '0.1.0')
 
 args = {
     'MQTT_IN_0': os.getenv("MQTT_IN_0", f"{APP_NAME}/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/detections"),
-    'MQTT_OUT_1': os.getenv("MQTT_OUT_1", f"{APP_NAME}/movements"),
+    # 'MQTT_OUT_1': os.getenv("MQTT_OUT_1", f"{APP_NAME}/movements"),
     'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
     'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
     'MQTT_SERVICE_HOST': os.getenv('MQTT_SERVICE_HOST', '127.0.0.1'),
@@ -43,6 +45,10 @@ args = {
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", "0.25")),
     'AUGMENTED_INFERENCE': bool(os.getenv("AUGMENTED_INFERENCE", "False")),
     'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT", "person,bicycle,car,motorbike,truck")),
+    "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", "0.5")),
+    "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", "0.8")),
+    "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", "30")),
+    "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10"))
 }
 
 logger = logging.getLogger(APP_NAME)
@@ -85,7 +91,6 @@ def base64_encode(ndarray_image):
 
 
 class NumpyEncoder(json.JSONEncoder):
-
     def default(self, obj,):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -142,7 +147,13 @@ if device.type != 'cpu':
 model.eval()
 
 
-def detect(im0):
+tracker = BYTETracker(track_buffer=args["TRACKER_BUFFER"],
+                      match_threshold=args["TRACKER_MATCH_THRESHOLD"],
+                      track_threshold=args["TRACKER_THRESHOLD"],
+                      frame_rate=args["TRACKER_FRAME_RATE"])
+
+
+def detect_and_track(im0):
     img = im0.copy()
     img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
     img = img[:, :, ::-1].transpose(2, 0, 1)
@@ -167,40 +178,61 @@ def detect(im0):
         img.detach().cpu()
 
         inference_time = time.perf_counter()-t0
-        
+
+        raw_detections = np.empty((0, 6), float)
+
         detected_objects = []
         for det in pred:
             if len(det) > 0:
-                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                det[:, :4] = scale_coords(
+                    img.shape[2:], det[:, :4], im0.shape).round()
                 for *xyxy, confidence, class_index in reversed(det):
                     if int(class_index) in args["CLASSES_TO_DETECT"]:
-                        x1 = xyxy[0]
-                        y1 = xyxy[1]
-                        x2 = xyxy[2]
-                        y2 = xyxy[3]
-                        width = x2 - x1
-                        height = y2 - y1
+                        raw_detections = np.concatenate((raw_detections,
+                                                        [[xyxy[0], 
+                                                        xyxy[1], 
+                                                        xyxy[2], 
+                                                        xyxy[3], 
+                                                        float(confidence), 
+                                                        class_index]]))
 
-                        obj = {"x1": int(x1), "y1": int(y1), 
-                               "x2": int(x2), "y2": int(y2),
-                               "area": float(width * height),
-                               "ratio": float(height / width),
-                               "x_center": float((x1 + x2) / 2.),
-                               "y_center": float((y1 + y2) / 2.),
-                               "score": round(float(confidence),2),
-                               "label": args["CLASS_NAMES"][int(class_index)],
-                               "class_id": int(class_index)}
-                        
-                        detected_objects.append(obj)
+        tracked_objects = tracker.update(raw_detections)
 
-        logger.info("{} Objects - Time: {}".format(len(detected_objects), inference_time))
-    
-    # img.detach().cpu()    
+    logger.info(
+        "{} Objects - Time: {}".format(len(detected_objects), inference_time))
+
+    # img.detach().cpu()
     # del img
     # torch.cuda.empty_cache()
     # gc.collect()
 
-    return detected_objects
+    return tracked_objects
+
+
+def format_detections(tracked_objects, timestamp, orig_width, orig_height):
+
+    object_data = []
+    for trk in tracked_objects:        
+        obj = {}
+        obj["detection_id"] = trk["id"]
+        obj["timestamp"] = timestamp
+        # storing all relative coordinates for easier frontend display
+        obj["x1"] = float(trk["x1"] / orig_width)
+        obj["y1"] = float(trk["y1"] / orig_height)
+        obj["x2"] = float(trk["x2"] / orig_width)
+        obj["y2"] = float(trk["y2"] / orig_height)
+        obj["width"] = float(obj["x2"] - obj["x1"])
+        obj["height"] = float(obj["y2"] - obj["y1"])
+        obj["area"] = float(obj["height"] * obj["width"])
+        obj["ratio"] = float(obj["height"] / obj["width"])
+        obj["x_center"] = float((obj["x1"] + obj["x2"])/2.)
+        obj["y_center"] = float((obj["y1"] + obj["y2"])/2.)
+        obj["score"] = float(trk["score"])
+        obj["class_id"] = int(trk["class_id"])
+        obj["label"] = args["CLASS_NAMES"][obj["class_id"]]
+        object_data.append(obj)
+
+    return object_data
 
 
 def load_image(base64_image):
@@ -222,32 +254,53 @@ def on_message(c, userdata, msg):
     except json.JSONDecodeError as e:
         logger.error("Error decoding JSON:", e)
         return
+    
+    if "image" not in data_received:
+        logger.error("No Image. Exiting.")
+        return
+    
+    if "location" not in data_received:
+        logger.warning("No Location. Proceeding.")
+        data_received["location"] = {"country": "",
+                                     "region": "",
+                                     "site": "",
+                                     "zone": "",
+                                     "group": ""}
+    
+    if "timestamp" not in data_received:
+        logger.warning("No timestamp. Using current time.")
+        data_received["timestamp"] = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
 
-    img_array, orig_height, orig_width = load_image(data_received["image"])
+    try:
+        img_array, orig_height, orig_width = load_image(data_received["image"])
+    except Exception as e:
+        logger.error(f"Could not load image. Error: {e}")
+        return
 
-    detected_objects = detect(img_array)
+    tracked_objects = detect_and_track(img_array, 
+                                       data_received["timestamp"],
+                                       orig_height,
+                                       orig_width)
 
-    msg_time_1 = time.perf_counter()
+    runtime =  time.perf_counter() - msg_time_0
 
     payload = {
         "timestamp": data_received["timestamp"],
+        "location": data_received["location"],
         "image": data_received["image"],
         "type": "objects",
-        "data": detected_objects,
-        "metadata": {
-            "applicatons": {
-                "name": APP_NAME, 
-                "version": "v1.0"},
-            "peripheral": {
-                "id": data_received["peripheral_id"],
-                "name": data_received["peripheral_name"],
-                "type": data_received["peripheral_type"]},
-            "processing": {
-                'image_height': orig_height, 
-                'image_width': orig_width,
-                'runtime': msg_time_1 - msg_time_0}
-        }
+        "detections": format_detections(tracked_objects,
+                                        data_received["timestamp"], 
+                                        orig_width, orig_height)
     }
+
+    if "peripheral" in data_received:
+        payload["peripheral"] = data_received["peripheral"]
+
+    if "lineage" in payload:
+        payload["lineage"].append([{"name": APP_NAME, "version": APP_VERSION, "runtime": runtime}])
+    else:
+        payload["lineage"] = [{"name": APP_NAME, "version": APP_VERSION, "runtime": runtime}]
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)

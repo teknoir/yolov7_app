@@ -15,11 +15,13 @@ RUN pip install --no-cache -r requirements.txt paho.mqtt Pillow>=9.1.0 \
 # NOT USED:  albumentations wandb gsutil notebook
 
 # OBJECT TRACKING DEPENDENCIES
-RUN python3 -m pip install numpy scipy lap
+RUN python3 -m pip install numpy scipy 
+RUN python3 -m pip install lap
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
+ADD tracker tracker/
 ADD app.py .
 
 #RUN wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7.pt

@@ -18,15 +18,16 @@ WORKDIR /usr/src/app
 # RUN python3 -m pip install --upgrade pip wheel
 RUN python3 -m pip install --no-cache -r requirements.txt paho.mqtt \
     Pillow>=9.1.0 opencv-python-headless==4.5.5.62 torch torchvision torchaudio \
-    --extra-index-url https://download.pytorch.org/whl/cpu 
+    numpy scipy --extra-index-url https://download.pytorch.org/whl/cpu 
 # NOT USED: albumentations wandb gsutil notebook 
 
-# OBJECT TRACKING DEPENDENCIES
-RUN python3 -m pip install numpy scipy lap
+# OBJECT TRACKING DEPENDENCY. Must be installed after numpy exists.
+RUN python3 -m pip install lap
 
 ENV OMP_NUM_THREADS=1
 ENV WANDB_MODE=disabled
 
+ADD tracker tracker/
 ADD app.py .
 
 CMD ["python3", "app.py"]
