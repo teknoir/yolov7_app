@@ -189,14 +189,16 @@ def detect_and_track(im0):
                 for *xyxy, confidence, class_index in reversed(det):
                     if int(class_index) in args["CLASSES_TO_DETECT"]:
                         raw_detections = np.concatenate((raw_detections,
-                                                        [[xyxy[0], 
-                                                        xyxy[1], 
-                                                        xyxy[2], 
-                                                        xyxy[3], 
-                                                        float(confidence), 
-                                                        class_index]]))
+                                                        [[int(xyxy[0]), 
+                                                          int(xyxy[1]), 
+                                                          int(xyxy[2]),
+                                                          int(xyxy[3]),
+                                                          round(float(confidence),2), 
+                                                          int(class_index)]]))
 
         tracked_objects = tracker.update(raw_detections)
+
+
 
     logger.info(
         "{} Objects - Time: {}".format(len(detected_objects), inference_time))
