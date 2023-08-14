@@ -149,10 +149,9 @@ model.eval()
 
 
 tracker = BYTETracker(track_buffer=args["TRACKER_BUFFER"],
-                      match_threshold=args["TRACKER_MATCH_THRESHOLD"],
-                      track_threshold=args["TRACKER_THRESHOLD"],
+                      match_thresh=args["TRACKER_MATCH_THRESHOLD"],
+                      track_thresh=args["TRACKER_THRESHOLD"],
                       frame_rate=args["TRACKER_FRAME_RATE"])
-
 
 def detect_and_track(im0):
     img = im0.copy()
