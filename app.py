@@ -14,6 +14,7 @@ import numpy as np
 import paho.mqtt.client as mqtt
 from io import BytesIO
 from PIL import Image
+from tracker.byte_tracker import BYTETracker
 
 # these imports draw from yolov7, which is cloned when the dockerfiles are built
 from utils.datasets import letterbox
