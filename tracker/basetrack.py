@@ -10,9 +10,9 @@ class TrackState(object):
 
 
 class BaseTrack(object):
-    _max_count = 1000
+    # _max_count = 1000
     track_id = None
-    _count = 0
+    # _count = 0
     is_activated = False
     state = TrackState.New
     # history = OrderedDict()
@@ -28,14 +28,13 @@ class BaseTrack(object):
     def end_frame(self):
         return self.frame_id
 
-    # @staticmethod
-    def next_id(self):
+    @staticmethod
+    def next_id():
         # BaseTrack._count += 1
-        # return BaseTrack._count
-        if len(self._count) > self._max_count:
-            self._count = 0
-        new_id = str(uuid4())
-        return new_id
+        # # return BaseTrack._count
+        # if BaseTrack._count > BaseTrack._max_count:
+        #     BaseTrack._count = 0
+        return str(uuid4())
 
     def activate(self, *args):
         raise NotImplementedError

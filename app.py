@@ -167,7 +167,7 @@ def detect_and_track(im0):
             img = img.unsqueeze(0)
 
         t0 = time.perf_counter()
-
+        
         pred = model(img, augment=args["AUGMENTED_INFERENCE"])[0]
         pred = non_max_suppression(pred,
                                    args["CONF_THRESHOLD"],
@@ -187,7 +187,7 @@ def detect_and_track(im0):
                 for *xyxy, conf, cls in reversed(det):
                     raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(
                         xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
-                    
+        
         tracked_objects = tracker.update(raw_detection)
     
     logger.info(
