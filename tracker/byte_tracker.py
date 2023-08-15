@@ -407,8 +407,8 @@ class BYTETracker(object):
             }
             outputs.append(output)
 
-        for i in enumerate(self.removed_stracks):
-            del self.removed_stracks[i]
+        # for i in enumerate(self.removed_stracks):
+        #     del self.removed_stracks[i]
 
         return outputs
 
