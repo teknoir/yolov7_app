@@ -1,5 +1,4 @@
 import numpy as np
-# from collections import OrderedDict
 from uuid import uuid4
 
 class TrackState(object):
@@ -10,12 +9,9 @@ class TrackState(object):
 
 
 class BaseTrack(object):
-    # _max_count = 1000
     track_id = None
-    # _count = 0
     is_activated = False
     state = TrackState.New
-    # history = OrderedDict()
     features = []
     curr_feature = None
     score = 0
@@ -30,10 +26,6 @@ class BaseTrack(object):
 
     @staticmethod
     def next_id():
-        # BaseTrack._count += 1
-        # # return BaseTrack._count
-        # if BaseTrack._count > BaseTrack._max_count:
-        #     BaseTrack._count = 0
         return str(uuid4())
 
     def activate(self, *args):

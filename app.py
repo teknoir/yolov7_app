@@ -148,10 +148,11 @@ if device.type != 'cpu':
 model.eval()
 
 
-tracker = BYTETracker(track_buffer=args["TRACKER_BUFFER"],
+tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
                       match_thresh=args["TRACKER_MATCH_THRESHOLD"],
-                      track_thresh=args["TRACKER_THRESHOLD"],
+                      track_buffer=args["TRACKER_BUFFER"],
                       frame_rate=args["TRACKER_FRAME_RATE"])
+
 
 def detect_and_track(im0):
     img = im0.copy()
@@ -179,6 +180,7 @@ def detect_and_track(im0):
 
         inference_time = time.perf_counter()-t0
 
+        # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
         raw_detection = np.empty((0, 6), float)
         for det in pred:
             if len(det) > 0:
@@ -187,7 +189,9 @@ def detect_and_track(im0):
                 for *xyxy, conf, cls in reversed(det):
                     raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(
                         xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
-        
+
+        print(raw_detection.shape)
+
         tracked_objects = tracker.update(raw_detection)
     
     logger.info(
@@ -287,9 +291,13 @@ def on_message(c, userdata, msg):
         payload["peripheral"] = data_received["peripheral"]
 
     if "lineage" in payload:
-        payload["lineage"].append([{"name": APP_NAME, "version": APP_VERSION, "runtime": runtime}])
+        payload["lineage"].append({"name": APP_NAME, 
+                                    "version": APP_VERSION, 
+                                    "runtime": runtime})
     else:
-        payload["lineage"] = [{"name": APP_NAME, "version": APP_VERSION, "runtime": runtime}]
+        payload["lineage"] = [{"name": APP_NAME, 
+                               "version": APP_VERSION, 
+                               "runtime": runtime}]
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
