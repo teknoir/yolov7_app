@@ -267,7 +267,6 @@ def on_message(c, userdata, msg):
     base_payload = {
             "timestamp": data_received["timestamp"],
             "location": data_received["location"],
-            "image": data_received["image"],
             "type": "object"
         }
 
@@ -283,9 +282,9 @@ def on_message(c, userdata, msg):
                                     "version": APP_VERSION, 
                                     "runtime": runtime})
 
-    events = []
+    detections = []
     for trk in tracked_objects:
-        payload = base_payload.copy()
+        detection_event = base_payload.copy()
         obj = {}
         obj["id"] = str(trk[4])
         obj["x1"] = float(int(trk[0]) / orig_width)
@@ -302,11 +301,14 @@ def on_message(c, userdata, msg):
         obj["class_id"] = int(trk[5])
         obj["label"] = args["CLASS_NAMES"][obj["class_id"]]
         
-        payload["detection"] = obj
+        detection_event["detection"] = obj
 
-        events.append(payload)
+        detections.append(detection_event)
 
-    msg = json.dumps(events, cls=NumpyEncoder)
+    output = {"detections": detections,
+              "image": data_received["image"]}
+
+    msg = json.dumps(output, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
 
 
