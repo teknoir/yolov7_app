@@ -267,7 +267,7 @@ def on_message(c, userdata, msg):
     base_payload = {
             "timestamp": data_received["timestamp"],
             "location": data_received["location"],
-            # "image": data_received["image"],
+            "image": data_received["image"],
             "type": "object"
         }
 
