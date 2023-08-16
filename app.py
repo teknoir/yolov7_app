@@ -274,14 +274,14 @@ def on_message(c, userdata, msg):
     if "peripheral" in data_received:
         base_payload["peripheral"] = data_received["peripheral"]
 
-    if "lineage" in payload:
-        base_payload["lineage"].append({"name": APP_NAME,
-                                        "version": APP_VERSION, 
-                                        "runtime": runtime})
+    if "lineage" in data_received:
+        base_payload["lineage"] = data_received["lineage"]
     else:
-        base_payload["lineage"] = [{"name": APP_NAME, 
-                                    "version": APP_VERSION,
-                                    "runtime": runtime}]
+        base_payload["lineage"] = []
+
+    base_payload["lineage"].append({"name": APP_NAME,
+                                    "version": APP_VERSION, 
+                                    "runtime": runtime})
 
     events = []
     for trk in tracked_objects:
