@@ -264,29 +264,30 @@ def on_message(c, userdata, msg):
 
     runtime = time.perf_counter() - msg_time_0
 
-    payload = {
-        "timestamp": data_received["timestamp"],
-        "location": data_received["location"],
-        "image": data_received["image"],
-        "type": "objects",
-        "detections": []
-    }
+    base_payload = {
+            "timestamp": data_received["timestamp"],
+            "location": data_received["location"],
+            # "image": data_received["image"],
+            "type": "object"
+        }
 
     if "peripheral" in data_received:
-        payload["peripheral"] = data_received["peripheral"]
+        base_payload["peripheral"] = data_received["peripheral"]
 
     if "lineage" in payload:
-        payload["lineage"].append({"name": APP_NAME, 
-                                    "version": APP_VERSION, 
-                                    "runtime": runtime})
+        base_payload["lineage"].append({"name": APP_NAME,
+                                        "version": APP_VERSION, 
+                                        "runtime": runtime})
     else:
-        payload["lineage"] = [{"name": APP_NAME, 
-                               "version": APP_VERSION, 
-                               "runtime": runtime}]
-    
-    for trk in tracked_objects:        
+        base_payload["lineage"] = [{"name": APP_NAME, 
+                                    "version": APP_VERSION,
+                                    "runtime": runtime}]
+
+    events = []
+    for trk in tracked_objects:
+        payload = base_payload.copy()
         obj = {}
-        obj["detection_id"] = str(trk[4])
+        obj["id"] = str(trk[4])
         obj["x1"] = float(int(trk[0]) / orig_width)
         obj["y1"] = float(int(trk[1]) / orig_height)
         obj["x2"] = float(int(trk[2]) / orig_width)
@@ -301,9 +302,11 @@ def on_message(c, userdata, msg):
         obj["class_id"] = int(trk[5])
         obj["label"] = args["CLASS_NAMES"][obj["class_id"]]
         
-        payload["detections"].append(obj)
+        payload["detection"] = obj
 
-    msg = json.dumps(payload, cls=NumpyEncoder)
+        events.append(payload)
+
+    msg = json.dumps(events, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
 
 
