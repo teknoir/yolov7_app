@@ -262,7 +262,7 @@ def on_message(c, userdata, msg):
 
     tracked_objects = detect_and_track(img)
 
-    msg_time_1 = time.perf_counter()
+    runtime = time.perf_counter() - msg_time_0
 
     payload = {
         "timestamp": data_received["timestamp"],
