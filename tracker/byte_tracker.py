@@ -3,6 +3,7 @@ from tracker import matching
 from utils.plots import xywh2xyxy,xyxy2xywh
 from tracker.kalman_filter import KalmanFilter
 from tracker.basetrack import BaseTrack, TrackState
+from uuid import uuid4
 
 class STrack(BaseTrack):
     shared_kalman = KalmanFilter()
@@ -36,7 +37,8 @@ class STrack(BaseTrack):
 
     def activate(self, kalman_filter, frame_id):
         self.kalman_filter = kalman_filter
-        self.track_id = self.next_id()
+        # self.track_id = self.next_id()
+        self.track_id = str(uuid4())
         self.mean, self.covariance = self.kalman_filter.initiate(self.tlwh_to_xyah(self._tlwh))
         self.tracklet_len = 0
         self.state = TrackState.Tracked
@@ -53,7 +55,8 @@ class STrack(BaseTrack):
         self.is_activated = True
         self.frame_id = frame_id
         if new_id:
-            self.track_id = self.next_id()
+            # self.track_id = self.next_id()
+            self.track_id = str(uuid4())
         self.score = new_track.score
         self.cls = new_track.cls
 

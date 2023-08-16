@@ -1,6 +1,6 @@
 import numpy as np
 from collections import OrderedDict
-
+from uuid import uuid4
 
 class TrackState(object):
     New = 0
@@ -11,7 +11,7 @@ class TrackState(object):
 
 class BaseTrack(object):
     _count = 0
-    track_id = 0
+    track_id = str(uuid4())
     is_activated = False
     state = TrackState.New
     history = OrderedDict()

@@ -52,7 +52,7 @@ args = {
     "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10"))
 }
 
-logger = logging.getLogger(args['NAME'])
+logger = logging.getLogger(args['APP_NAME'])
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.INFO)
 formatter = logging.Formatter(
