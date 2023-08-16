@@ -179,15 +179,15 @@ def detect_and_track(im0):
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
 
-    img = torch.from_numpy(img).to(device)
-    img = img.half() if half else img.float()  # uint8 to fp16/32
-    img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3: 
-        img = img.unsqueeze(0)
-
-    t0 = time.perf_counter()
-
     with torch.no_grad():
+        img = torch.from_numpy(img).to(device)
+        img = img.half() if half else img.float()  # uint8 to fp16/32
+        img /= 255.0  # 0 - 255 to 0.0 - 1.0
+        if img.ndimension() == 3: 
+            img = img.unsqueeze(0)
+
+        t0 = time.perf_counter()
+
         pred = model(img)[0] #, augment=args["AUGMENTED_INFERENCE"])[0]
         pred = non_max_suppression(pred,
                                    args["CONF_THRESHOLD"],
@@ -195,17 +195,18 @@ def detect_and_track(im0):
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
 
-    img.detach().cpu()
+        img.detach().cpu()
 
-    # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
-    raw_detection = np.empty((0,6), float)
-    for det in pred:
-        if len(det) > 0:
-            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-            for *xyxy, conf, cls in reversed(det):
-                raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
-    
-    tracked_objects = tracker.update(raw_detection)
+        # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
+        raw_detection = np.empty((0,6), float)
+        for det in pred:
+            if len(det) > 0:
+                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
+                for *xyxy, conf, cls in reversed(det):
+                    raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
+            det.detach().cpu()
+        
+        tracked_objects = tracker.update(raw_detection)
 
     inference_time = time.perf_counter()-t0
 
