@@ -364,15 +364,21 @@ class BYTETracker(object):
         output_stracks = [track for track in self.tracked_stracks if track.is_activated]
 
         outputs = []
-        for i, t in enumerate(output_stracks):
-            output= []
+        for t in output_stracks:
+            # output= []
             tlwh = t.tlwh
-            tid = t.track_id
+            # tid = t.track_id
             tlwh = np.expand_dims(tlwh, axis=0)
             xyxy = xywh2xyxy(tlwh)
             xyxy = np.squeeze(xyxy, axis=0)
-            outputs.append([xyxy[0],xyxy[1],xyxy[2],xyxy[3],t.track_id,clss_keep[i],t.score])
-        outputs = np.array(outputs)
+            outputs.append([xyxy[0],
+                            xyxy[1],
+                            xyxy[2],
+                            xyxy[3],
+                            t.track_id,
+                            t.cls,
+                            t.score])
+        # outputs = np.array(outputs)
         return outputs
 
 

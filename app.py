@@ -2,13 +2,13 @@
 
 import os
 import sys
-# import cv2
 import json
 import time
 import base64
 import logging
 import torch
 import torch.backends.cudnn as cudnn
+from datetime import timezone, datetime
 from io import BytesIO
 import numpy as np
 from PIL import Image
@@ -26,32 +26,26 @@ from utils.datasets import letterbox
 from tracker.byte_tracker import BYTETracker
 
 APP_NAME = os.getenv('APP_NAME', 'yolov7-bytetrack')
+APP_VERSION = os.getenv('APP_VERSION', '0.1.0')
 
 args = {
-    'NAME': APP_NAME,
-
+    "APP_NAME": APP_NAME,
+    "APP_VERSION": APP_VERSION,
     'MQTT_IN_0': os.getenv("MQTT_IN_0", f"{APP_NAME}/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
     'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
     'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
     'MQTT_SERVICE_HOST': os.getenv('MQTT_SERVICE_HOST', '127.0.0.1'),
     'MQTT_SERVICE_PORT': int(os.getenv('MQTT_SERVICE_PORT', '1883')),
-
     'DEVICE': os.getenv("DEVICE", '0'),
-
-    # 'MODEL_NAME': os.getenv("MODEL_NAME", "yolov7-coco-bytetrack"),
-    # 'MODEL_VERSION': os.getenv("MODEL_VERSION", "0.1"),
-    # 'MODEL_ID': os.getenv("MODEL_ID", "abc123"),
-
     'WEIGHTS': str(os.getenv("WEIGHTS", "model.pt")),
     'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
     'IMG_SIZE': int(os.getenv("CONF_THRESHOLD", "640")),
     'CLASS_NAMES': os.getenv("CLASS_NAMES", "obj.names"),
     'IOU_THRESHOLD': float(os.getenv("IOU_THRESHOLD", "0.45")),
     'CONF_THRESHOLD': float(os.getenv("CONF_THRESHOLD", "0.25")),
-    # 'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
+    'AUGMENTED_INFERENCE': os.getenv("AUGMENTED_INFERENCE", ""),
     'CLASSES_TO_DETECT': str(os.getenv("CLASSES_TO_DETECT", "person,bicycle,car,motorbike,truck")),
-
     "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", "0.5")),
     "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESOLD", "0.8")),
     "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", "30")),
@@ -90,11 +84,11 @@ def on_connect_v5(client, _userdata, _flags, rc, _props):
         client.subscribe(args['MQTT_IN_0'], qos=0)
 
 
-def base64_encode(ndarray_image):
-    buff = BytesIO()
-    Image.fromarray(ndarray_image).save(buff, format='JPEG')
-    string_encoded = base64.b64encode(buff.getvalue()).decode("utf-8")
-    return f"data:image/jpeg;base64,{string_encoded}"
+# def base64_encode(ndarray_image):
+#     buff = BytesIO()
+#     Image.fromarray(ndarray_image).save(buff, format='JPEG')
+#     string_encoded = base64.b64encode(buff.getvalue()).decode("utf-8")
+#     return f"data:image/jpeg;base64,{string_encoded}"
 
 
 class NumpyEncoder(json.JSONEncoder):
@@ -113,12 +107,12 @@ class NumpyEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-# if args["AUGMENTED_INFERENCE"] == "":
-#     args["AUGMENTED_INFERENCE"] = False
-# else:
-#     args["AUGMENTED_INFERENCE"] = True
+if args["AUGMENTED_INFERENCE"] == "" or args["AUGMENTED_INFERENCE"].lower() == "false":
+    args["AUGMENTED_INFERENCE"] = False
+else:
+    args["AUGMENTED_INFERENCE"] = True
 
-if args["AGNOSTIC_NMS"] == "":
+if args["AGNOSTIC_NMS"] == "" or args["AGNOSTIC_NMS"].lower() == "false":
     args["AGNOSTIC_NMS"] = False
 else:
     args["AGNOSTIC_NMS"] = True
@@ -172,6 +166,7 @@ if device.type != 'cpu':
         next(model.parameters())))  # run once
 model.eval()
 
+
 tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
                       match_thresh=args["TRACKER_MATCH_THRESHOLD"],
                       track_buffer=args["TRACKER_BUFFER"],
@@ -181,28 +176,28 @@ tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
 def detect_and_track(im0):
     img = im0.copy()
     img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
-    #img = cv2.resize(np.array(img), (userdata["IMG_SIZE"], userdata["IMG_SIZE"]))
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
-    # img = np.expand_dims(img, axis=0)
+
     img = torch.from_numpy(img).to(device)
     img = img.half() if half else img.float()  # uint8 to fp16/32
     img /= 255.0  # 0 - 255 to 0.0 - 1.0
-    if img.ndimension() == 3: img = img.unsqueeze(0)
-    
+    if img.ndimension() == 3: 
+        img = img.unsqueeze(0)
+
+    t0 = time.perf_counter()
+
     with torch.no_grad():
-        t0 = time_synchronized()
         pred = model(img)[0] #, augment=args["AUGMENTED_INFERENCE"])[0]
         pred = non_max_suppression(pred,
                                    args["CONF_THRESHOLD"],
                                    args["IOU_THRESHOLD"],
                                    args["CLASSES_TO_DETECT"],
                                    args["AGNOSTIC_NMS"])
-    #inference_time = time_synchronized() - t0
-    #logger.info("YOLOv7 Inference Time : {}".format(inference_time))
+
+    img.detach().cpu()
 
     # pred = list of detections, on (n,6) tensor per image [xyxy, conf, cls]
-    # loop below from: https://github.com/theos-ai/easy-yolov7/blob/main/algorithm/object_detector.py
     raw_detection = np.empty((0,6), float)
     for det in pred:
         if len(det) > 0:
@@ -212,13 +207,21 @@ def detect_and_track(im0):
     
     tracked_objects = tracker.update(raw_detection)
 
+    inference_time = time.perf_counter()-t0
+
+    logger.info("{} Objects - Time: {}".format(
+        len(tracked_objects), inference_time))
+
     return tracked_objects
 
 
 def load_image(base64_image):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
-    return np.array(image)
+    im0 = np.array(image)
+    height = im0.shape[0]
+    width = im0.shape[1]
+    return im0, height, width
 
 
 def on_message(c, userdata, msg):
@@ -230,70 +233,82 @@ def on_message(c, userdata, msg):
     except json.JSONDecodeError as e:
         logger.error("Error decoding JSON:", e)
         return
+    
+    if "image" not in data_received:
+        logger.error("No Image. Exiting.")
+        return
+    
+    if "location" not in data_received:
+        logger.warning("No Location. Proceeding.")
+        data_received["location"] = {"country": "",
+                                     "region": "",
+                                     "site": "",
+                                     "zone": "",
+                                     "group": ""}
+    
+    if "timestamp" not in data_received:
+        logger.warning("No timestamp. Using current time.")
+        data_received["timestamp"] = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
 
-    msg_time_0 = time_synchronized()
+    try:
+        img_array, orig_height, orig_width = load_image(data_received["image"])
+    except Exception as e:
+        logger.error(f"Could not load image. Error: {e}")
+        return
 
-    img = load_image(data_received["image"])
+    msg_time_0 = time.perf_counter()
+
+    img, orig_height, orig_width = load_image(data_received["image"])
 
     tracked_objects = detect_and_track(img)
 
-    msg_time_1 = time_synchronized()
+    msg_time_1 = time.perf_counter()
 
     payload = {
         "timestamp": data_received["timestamp"],
+        "location": data_received["location"],
         "image": data_received["image"],
         "type": "objects",
-        "data": [],
-        "metadata": {
-            "applicaton": {
-                "name": APP_NAME, 
-                "version": "v1.0",
-                "processing_time": msg_time_1 - msg_time_0,
-                "input_parameters": userdata},
-            "peripheral": {
-                "id": "00001",
-                "name": "parking-lot-1", 
-                "type": "camera",
-                "image_height": img.shape[0], 
-                "image_width": img.shape[1],
-                "camera_fps": 1},
-        },
+        "detections": []
     }
 
-    for tracked_object in tracked_objects:
-        x1 = tracked_object[0]
-        y1 = tracked_object[1]
-        x2 = tracked_object[2]
-        y2 = tracked_object[3]
-        track_id = tracked_object[4]
-        class_index = int(tracked_object[5])
-        score = tracked_object[6]
+    if "peripheral" in data_received:
+        payload["peripheral"] = data_received["peripheral"]
+
+    if "lineage" in payload:
+        payload["lineage"].append({"name": APP_NAME, 
+                                    "version": APP_VERSION, 
+                                    "runtime": runtime})
+    else:
+        payload["lineage"] = [{"name": APP_NAME, 
+                               "version": APP_VERSION, 
+                               "runtime": runtime}]
+    
+    for trk in tracked_objects:        
+        obj = {}
+        obj["detection_id"] = str(trk[4])
+        obj["x1"] = float(int(trk[0]) / orig_width)
+        obj["y1"] = float(int(trk[1]) / orig_height)
+        obj["x2"] = float(int(trk[2]) / orig_width)
+        obj["y2"] = float(int(trk[3]) / orig_height)
+        obj["width"] = float(obj["x2"] - obj["x1"])
+        obj["height"] = float(obj["y2"] - obj["y1"])
+        obj["area"] = float(obj["height"] * obj["width"])
+        obj["ratio"] = float(obj["height"] / obj["width"])
+        obj["x_center"] = float((obj["x1"] + obj["x2"])/2.)
+        obj["y_center"] = float((obj["y1"] + obj["y2"])/2.)
+        obj["score"] = float(trk[6])
+        obj["class_id"] = int(trk[5])
+        obj["label"] = args["CLASS_NAMES"][obj["class_id"]]
         
-        payload["data"].append({
-            'trk_id': track_id,
-            'x1': x1,
-            'y1': y1,
-            'x2': x2,
-            'y2': y2,
-            'x_center': int((x1 + x2) / 2),
-            'y_center': int((y1 + y2) / 2),
-            'width': x2 - x1,
-            'height': y2 - y1,
-            'ratio': (y2 - y1) / (x2 - x1),
-            'score': score,
-            'area': x2 * y2,
-            'label': args["CLASS_NAMES"][class_index],
-            # 'track_time': track_time
-        })
+        payload["detections"].append(obj)
 
     msg = json.dumps(payload, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
-    logger.info(time.perf_counter())
-    # logger.info(payload)
 
 
 if args['MQTT_VERSION'] == '5':
-    client = mqtt.Client(client_id=args['NAME'],
+    client = mqtt.Client(client_id=args['APP_NAME'],
                          transport=args['MQTT_TRANSPORT'],
                          protocol=mqtt.MQTTv5,
                          userdata=args)
@@ -304,7 +319,7 @@ if args['MQTT_VERSION'] == '5':
                    clean_start=mqtt.MQTT_CLEAN_START_FIRST_ONLY, keepalive=60)
 
 if args['MQTT_VERSION'] == '3':
-    client = mqtt.Client(client_id=args['NAME'], transport=args['MQTT_TRANSPORT'],
+    client = mqtt.Client(client_id=args['APP_NAME'], transport=args['MQTT_TRANSPORT'],
                          protocol=mqtt.MQTTv311, userdata=args, clean_session=True)
     client.reconnect_delay_set(min_delay=1, max_delay=120)
     client.on_connect = on_connect_v3
