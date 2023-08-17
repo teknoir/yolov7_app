@@ -250,16 +250,14 @@ def on_message(c, userdata, msg):
         logger.warning("No timestamp. Using current time.")
         data_received["timestamp"] = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
 
+    msg_time_0 = time.perf_counter()
+
     try:
-        img_array, orig_height, orig_width = load_image(data_received["image"])
+        img, orig_height, orig_width = load_image(data_received["image"])
     except Exception as e:
         logger.error(f"Could not load image. Error: {e}")
         return
-
-    msg_time_0 = time.perf_counter()
-
-    img, orig_height, orig_width = load_image(data_received["image"])
-
+    
     tracked_objects = detect_and_track(img)
 
     runtime = time.perf_counter() - msg_time_0
