@@ -217,18 +217,22 @@ def detect_and_track(im0):
 
 
 def calculate_proximities(detections):
+    detections_with_proximities = []
     for i, obj1 in enumerate(detections):
         proximity = []
+        p = [obj1["x_center"], obj1["y_center"]]
         for j, obj2 in enumerate(detections):
             if i != j:
-                p = [obj1["x_center"],obj1["y_center"]]
-                q = [obj2["x_center"],obj2["y_center"]]
+                q = [obj2["x_center"], obj2["y_center"]]
                 prox = {"label": obj2["label"], 
-                        "id": obj2["id"], 
+                        "id": obj2["id"],
+                        "x_center": obj2["x_center"],
+                        "y_center": obj2["y_center"],
                         "distance": math.dist(p,q)}
                 proximity.append(prox)
-        detections[i]["proximity"] = proximity
-    return detections
+        obj1["proximity"] = proximity
+        detections_with_proximities.append(obj1)
+    return detections_with_proximities
 
 
 def load_image(base64_image):
