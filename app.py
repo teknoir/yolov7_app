@@ -220,6 +220,7 @@ def calculate_proximities(detections):
     detections_with_proximities = []
     for i, obj1 in enumerate(detections):
         proximity = []
+        closest_by_label = {}
         p = [obj1["x_center"], obj1["y_center"]]
         for j, obj2 in enumerate(detections):
             if i != j:
@@ -229,8 +230,14 @@ def calculate_proximities(detections):
                         "x_center": obj2["x_center"],
                         "y_center": obj2["y_center"],
                         "distance": math.dist(p,q)}
+                if prox["label"] in closest_by_label:
+                    if prox["distance"] < closest_by_label[prox["label"]]["distance"]:
+                        closest_by_label[prox["label"]] = prox
+                else:
+                    closest_by_label[prox["label"]] = prox
                 proximity.append(prox)
         obj1["proximity"] = proximity
+        obj1["nearest_neighbors"] = closest_by_label
         detections_with_proximities.append(obj1)
     return detections_with_proximities
 
@@ -324,6 +331,9 @@ def on_message(c, userdata, msg):
         detections.append(detection_event)
 
     detections = calculate_proximities(detections)
+
+    
+
 
     output = {"detections": detections,
               "image": data_received["image"]}
