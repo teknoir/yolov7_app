@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import time
+import math
 import base64
 import logging
 import torch
@@ -215,6 +216,21 @@ def detect_and_track(im0):
     return tracked_objects
 
 
+def calculate_proximities(detections):
+    for i, obj1 in enumerate(detections):
+        proximity = []
+        for j, obj2 in enumerate(detections):
+            if i != j:
+                p = [obj1["x_center"],obj1["y_center"]]
+                q = [obj2["x_center"],obj2["y_center"]]
+                prox = {"label": obj2["label"], 
+                        "id": obj2["id"], 
+                        "distance": math.dist(p,q)}
+                proximity.append(prox)
+        detections[i]["proximity"] = proximity
+    return detections
+
+
 def load_image(base64_image):
     image_base64 = base64_image.split(',', 1)[-1]
     image = Image.open(BytesIO(base64.b64decode(image_base64)))
@@ -298,10 +314,12 @@ def on_message(c, userdata, msg):
         obj["score"] = float(trk[6])
         obj["class_id"] = int(trk[5])
         obj["label"] = args["CLASS_NAMES"][obj["class_id"]]
-        
+
         detection_event["detection"] = obj
 
         detections.append(detection_event)
+
+    detections = calculate_proximities(detections)
 
     output = {"detections": detections,
               "image": data_received["image"]}
