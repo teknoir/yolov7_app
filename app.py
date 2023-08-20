@@ -221,14 +221,16 @@ def calculate_proximities(detections):
     for i, obj1 in enumerate(detections):
         proximity = []
         closest_by_label = {}
-        p = [obj1["x_center"], obj1["y_center"]]
+        det1 = obj1["detection"]
+        p = [det1["x_center"], det1["y_center"]]
         for j, obj2 in enumerate(detections):
             if i != j:
-                q = [obj2["x_center"], obj2["y_center"]]
-                prox = {"label": obj2["label"], 
-                        "id": obj2["id"],
-                        "x_center": obj2["x_center"],
-                        "y_center": obj2["y_center"],
+                det2 = obj2["detection"]
+                q = [det2["x_center"], det2["y_center"]]
+                prox = {"label": det2["label"], 
+                        "id": det2["id"],
+                        "x_center": det2["x_center"],
+                        "y_center": det2["y_center"],
                         "distance": math.dist(p,q)}
                 if prox["label"] in closest_by_label:
                     if prox["distance"] < closest_by_label[prox["label"]]["distance"]:
@@ -310,6 +312,7 @@ def on_message(c, userdata, msg):
     detections = []
     for trk in tracked_objects:
         detection_event = base_payload.copy()
+
         obj = {}
         obj["id"] = str(trk[4])
         obj["x1"] = float(int(trk[0]) / orig_width)
@@ -331,9 +334,6 @@ def on_message(c, userdata, msg):
         detections.append(detection_event)
 
     detections = calculate_proximities(detections)
-
-    
-
 
     output = {"detections": detections,
               "image": data_received["image"]}
