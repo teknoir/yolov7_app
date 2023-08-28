@@ -1,6 +1,7 @@
 import numpy as np
 from collections import OrderedDict
-from uuid import uuid4
+# from uuid import uuid4
+import bson
 
 class TrackState(object):
     New = 0
@@ -11,7 +12,7 @@ class TrackState(object):
 
 class BaseTrack(object):
     _count = 0
-    track_id = str(uuid4())
+    track_id = str(bson.objectid.ObjectId())
     is_activated = False
     state = TrackState.New
     history = OrderedDict()
