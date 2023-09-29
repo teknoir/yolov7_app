@@ -2,7 +2,12 @@ datasets/
 inv/
 runs/
 __pycache__/
-
+mqtt_in_stack.py
+utils
+models
+images
+cfg
+app_local.py
 # Repo-specific GitIgnore ----------------------------------------------------------------------------------------------
 *.jpg
 *.jpeg
@@ -27,7 +32,7 @@ __pycache__/
 *.cfg
 !setup.cfg
 !cfg/yolov3*.cfg
-
+mqtt_in_stack_video.py
 storage.googleapis.com
 runs/*
 data/*
