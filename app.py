@@ -335,8 +335,9 @@ def on_message(c, userdata, msg):
 
     detections = calculate_proximities(detections)
 
-    output = {"detections": detections,
-              "image": data_received["image"]}
+    output = base_payload.copy() # copy everything for frontend, even if no detections
+    output["detections"] = detections
+    output["image"] = data_received["image"]
 
     msg = json.dumps(output, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)
