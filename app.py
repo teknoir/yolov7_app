@@ -367,4 +367,3 @@ client.enable_logger(logger=logger)
 
 # This runs the network code in a background thread and also handles reconnecting for you.
 client.loop_forever()
-
