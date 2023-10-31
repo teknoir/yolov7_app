@@ -15,7 +15,7 @@ repository:
   topics: edge, app, ai, yolo, object detection, computer vision
 
   # Either `true` to make the repository private, or `false` to make it public.
-  private: true
+  private: false
 
   # Either `true` to enable issues for this repository, `false` to disable them.
   has_issues: true
@@ -76,9 +76,9 @@ labels:
 # * `triage` - Recommended for contributors who need to proactively manage issues and pull requests without write access.
 teams:
   - name: ai-development
-    permission: maintain
+    permission: admin
   - name: mlops
-    permission: maintain
+    permission: admin
   - name: edge
     permission: maintain
 
