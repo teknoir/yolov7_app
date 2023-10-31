@@ -15,7 +15,7 @@ ENV WANDB_MODE=disabled
 
 ENV DEVICE=0
 
-ADD tracker tracker/
-ADD app.py .
+#ADD tracker tracker/
+#ADD app.py .
 
 CMD ["python3", "app.py"]
