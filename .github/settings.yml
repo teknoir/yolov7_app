@@ -12,7 +12,7 @@ repository:
   homepage: https://teknoir.cloud
 
   # A comma-separated list of topics to set on the repository
-  topics: edge, app, ai, yolo, object detection, computer vision
+  topics: edge, app, ai, yolo, objectdetection, computervision
 
   # Either `true` to make the repository private, or `false` to make it public.
   private: false
@@ -75,6 +75,8 @@ labels:
 # * `maintain` - Recommended for project managers who need to manage the repository without access to sensitive or destructive actions.
 # * `triage` - Recommended for contributors who need to proactively manage issues and pull requests without write access.
 teams:
+  - name: ai-development
+    permission: admin
   - name: mlops
     permission: admin
   - name: edge
