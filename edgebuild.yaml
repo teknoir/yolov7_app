@@ -50,6 +50,7 @@
           "r32.7.2": "gcr.io/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
           "r34.1.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r34.1.1-pth1.11-py3"
           "r35.1.0": "gcr.io/teknoir/nvidia/l4t-pytorch:r35.1.0-pth1.11-py3"
+          "r35.3.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r35.3.1-pth1.11-py3"
 
     - name: Set image vars
       set_fact:
