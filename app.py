@@ -32,7 +32,7 @@ APP_VERSION = os.getenv('APP_VERSION', '0.1.0')
 args = {
     "APP_NAME": APP_NAME,
     "APP_VERSION": APP_VERSION,
-    'MQTT_IN_0': os.getenv("MQTT_IN_0", f"{APP_NAME}/images"),
+    'MQTT_IN_0': os.getenv("MQTT_IN_0",   f"{APP_NAME}/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
     'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
     'MQTT_TRANSPORT': os.getenv("MQTT_TRANSPORT", 'tcp'),
@@ -50,7 +50,8 @@ args = {
     "TRACKER_THRESHOLD": float(os.getenv("TRACKER_THRESHOLD", "0.5")),
     "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESHOLD", "0.8")),
     "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", "30")),
-    "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10"))
+    "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10")),
+    "ENABLE_SAHI" : os.getenv("ENABLE_SAHI","")
 }
 
 logger = logging.getLogger(args['APP_NAME'])
@@ -113,6 +114,11 @@ if args["AUGMENTED_INFERENCE"] == "" or args["AUGMENTED_INFERENCE"].lower() == "
 else:
     args["AUGMENTED_INFERENCE"] = True
 
+if args["ENABLE_SAHI"] == "" or args["ENABLE_SAHI"].lower() == "false":
+    args["ENABLE_SAHI"] = False
+else:
+    args["ENABLE_SAHI"] = True
+
 if args["AGNOSTIC_NMS"] == "" or args["AGNOSTIC_NMS"].lower() == "false":
     args["AGNOSTIC_NMS"] = False
 else:
@@ -151,6 +157,7 @@ half = device.type != 'cpu'  # half precision only supported on CUDA
 model = attempt_load(args["WEIGHTS"], map_location=device)
 stride = int(model.stride.max())
 imgsz = check_img_size(args["IMG_SIZE"], s=stride)
+print("image size {:} stride = {:}".format(imgsz,stride))
 if isinstance(imgsz, (list, tuple)):
     assert len(imgsz) == 2
     "height and width of image has to be specified"
@@ -176,7 +183,8 @@ tracker = BYTETracker(track_thresh=args["TRACKER_THRESHOLD"],
 
 def detect_and_track(im0):
     img = im0.copy()
-    img = letterbox(img, imgsz, auto=imgsz != 1280)[0]
+    flag = imgsz != 1280
+    img = letterbox(img, imgsz, auto=flag)[0]
     img = img[:, :, ::-1].transpose(2, 0, 1)  # BGR to RGB, to 3x416x416
     img = np.ascontiguousarray(img)
 
@@ -191,10 +199,10 @@ def detect_and_track(im0):
     with torch.no_grad():
         pred = model(img)[0] #, augment=args["AUGMENTED_INFERENCE"])[0]
         pred = non_max_suppression(pred,
-                                   args["CONF_THRESHOLD"],
-                                   args["IOU_THRESHOLD"],
-                                   args["CLASSES_TO_DETECT"],
-                                   args["AGNOSTIC_NMS"])
+                                    args["CONF_THRESHOLD"],
+                                    args["IOU_THRESHOLD"],
+                                    args["CLASSES_TO_DETECT"],
+                                    args["AGNOSTIC_NMS"])
 
     img.detach().cpu()
 
@@ -213,34 +221,51 @@ def detect_and_track(im0):
     logger.info("{} Objects - Time: {}".format(
         len(tracked_objects), inference_time))
 
-    return tracked_objects
+    return tracked_objects,raw_detection
 
 
-def calculate_proximities(detections):
+def calculate_proximities(detections,ignore=False):
     detections_with_proximities = []
-    for i, obj1 in enumerate(detections):
-        proximity = []
-        closest_by_label = {}
-        det1 = obj1["detection"]
-        p = [det1["x_center"], det1["y_center"]]
-        for j, obj2 in enumerate(detections):
-            if i != j:
-                det2 = obj2["detection"]
-                q = [det2["x_center"], det2["y_center"]]
-                prox = {"label": det2["label"], 
-                        "id": det2["id"],
-                        "x_center": det2["x_center"],
-                        "y_center": det2["y_center"],
-                        "distance": math.dist(p,q)}
-                if prox["label"] in closest_by_label:
-                    if prox["distance"] < closest_by_label[prox["label"]]["distance"]:
+
+    # we dont need this here
+    if not ignore:
+        for i, obj1 in enumerate(detections):
+            proximity = []
+            closest_by_label = {}
+            det1 = obj1["detection"]
+            p = [det1["x_center"], det1["y_center"]]
+            
+            for j, obj2 in enumerate(detections):
+                if i != j:
+                    det2 = obj2["detection"]
+                    q = [det2["x_center"], det2["y_center"]]
+                    prox = {"label": det2["label"], 
+                            "id": det2["id"],
+                            "x_center": det2["x_center"],
+                            "y_center": det2["y_center"],
+                            "distance": math.dist(p,q)}
+                    if prox["label"] in closest_by_label:
+                        if prox["distance"] < closest_by_label[prox["label"]]["distance"]:
+                            closest_by_label[prox["label"]] = prox
+                    else:
                         closest_by_label[prox["label"]] = prox
-                else:
-                    closest_by_label[prox["label"]] = prox
-                proximity.append(prox)
-        obj1["proximity"] = proximity
-        obj1["nearest_neighbors"] = closest_by_label
-        detections_with_proximities.append(obj1)
+                    proximity.append(prox)
+            obj1["proximity"] = proximity
+            obj1["nearest_neighbors"] = closest_by_label
+            detections_with_proximities.append(obj1)
+    else:
+        for i, obj1 in enumerate(detections): 
+            obj1["proximity"] = []
+            det2 = obj1["detection"]
+            prox = {"label": det2["label"], 
+                    "id": det2["id"],
+                    "x_center": det2["x_center"],
+                    "y_center": det2["y_center"],
+                    "distance": 0.0}
+            obj1["proximity"] = [prox]
+            obj1["nearest_neighbors"] = {prox["label"]:prox}
+            detections_with_proximities.append(obj1)
+
     return detections_with_proximities
 
 
@@ -253,6 +278,8 @@ def load_image(base64_image):
     return im0, height, width
 
 
+    
+    
 def on_message(c, userdata, msg):
     message = str(msg.payload.decode("utf-8", "ignore"))
     # payload: {“timestamp”: “…”, “image”: <base64_mime>, “camera_id”: “A”, “camera_name”: “…”}
@@ -287,7 +314,7 @@ def on_message(c, userdata, msg):
         logger.error(f"Could not load image. Error: {e}")
         return
     
-    tracked_objects = detect_and_track(img)
+    tracked_objects,raw_detection = detect_and_track(img)
 
     runtime = time.perf_counter() - msg_time_0
 
@@ -333,7 +360,7 @@ def on_message(c, userdata, msg):
 
         detections.append(detection_event)
 
-    detections = calculate_proximities(detections)
+    detections = calculate_proximities(detections,ignore=True)
 
     output = base_payload.copy() # copy everything for frontend, even if no detections
     output["detections"] = detections
