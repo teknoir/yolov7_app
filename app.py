@@ -51,7 +51,8 @@ args = {
     "TRACKER_MATCH_THRESHOLD": float(os.getenv("TRACKER_MATCH_THRESHOLD", "0.8")),
     "TRACKER_BUFFER": int(os.getenv("TRACKER_BUFFER", "30")),
     "TRACKER_FRAME_RATE": int(os.getenv("TRACKER_FRAME_RATE", "10")),
-    "ENABLE_SAHI" : os.getenv("ENABLE_SAHI","")
+    "ENABLE_SAHI" : os.getenv("ENABLE_SAHI",""),
+    "IGNORE_DISTANCE" : os.getenv("IGNORE_DISTANCE", "True")=="True"
 }
 
 logger = logging.getLogger(args['APP_NAME'])
@@ -254,6 +255,7 @@ def calculate_proximities(detections,ignore=False):
             obj1["nearest_neighbors"] = closest_by_label
             detections_with_proximities.append(obj1)
     else:
+        #print("ignoring")
         for i, obj1 in enumerate(detections): 
             obj1["proximity"] = []
             det2 = obj1["detection"]
@@ -360,7 +362,7 @@ def on_message(c, userdata, msg):
 
         detections.append(detection_event)
 
-    detections = calculate_proximities(detections,ignore=True)
+    detections = calculate_proximities(detections,ignore=args["IGNORE_DISTANCE"])
 
     output = base_payload.copy() # copy everything for frontend, even if no detections
     output["detections"] = detections
