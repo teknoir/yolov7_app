@@ -199,6 +199,8 @@ def detect_and_track(im0):
 
     with torch.no_grad():
         pred = model(img)[0] #, augment=args["AUGMENTED_INFERENCE"])[0]
+        inference_time = time.perf_counter()-t0
+        t0 = time.perf_counter()
         pred = non_max_suppression(pred,
                                     args["CONF_THRESHOLD"],
                                     args["IOU_THRESHOLD"],
@@ -216,11 +218,12 @@ def detect_and_track(im0):
                 raw_detection = np.concatenate((raw_detection, [[int(xyxy[0]), int(xyxy[1]), int(xyxy[2]), int(xyxy[3]), round(float(conf), 2), int(cls)]]))
     
     tracked_objects = tracker.update(raw_detection)
+    tracking_time = time.perf_counter()-t0
 
-    inference_time = time.perf_counter()-t0
+    
 
-    logger.info("{} Objects - Time: {}".format(
-        len(tracked_objects), inference_time))
+    logger.info("{} Objects - Time I: {:5.1f} T: {:5.1f} ms".format(
+        len(tracked_objects), inference_time*1000.,tracking_time*1000.))
 
     return tracked_objects,raw_detection
 
