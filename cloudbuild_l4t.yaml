@@ -6,7 +6,7 @@ options:
 
 steps:
   - id: l4t_base
-    name: gcr.io/teknoir/edgebuild:e627d2a
+    name: gcr.io/teknoir/edgebuild
     env:
       - 'PROJECT_ID=${PROJECT_ID}'
       - 'BRANCH_NAME=${BRANCH_NAME}'
