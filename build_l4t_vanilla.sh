@@ -44,8 +44,6 @@ build_and_push(){
     -f ./vanilla.Dockerfile .
 }
 
-build_and_push l4tr35.4.1
-build_and_push l4tr35.3.1
 build_and_push l4tr34.1.1
 build_and_push l4tr32.7.1
 build_and_push l4tr32.7.2
