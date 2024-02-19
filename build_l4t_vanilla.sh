@@ -21,7 +21,7 @@ download_cache(){
     }
   fi
 }
-download_cache coco.names https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names
+download_cache coco.names https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names
 download_cache yolov7-tiny.pt https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt
 
 build_and_push(){
@@ -44,6 +44,7 @@ build_and_push(){
     -f ./vanilla.Dockerfile .
 }
 
+build_and_push l4tr35.4.1
 build_and_push l4tr35.3.1
 build_and_push l4tr34.1.1
 build_and_push l4tr32.7.1
