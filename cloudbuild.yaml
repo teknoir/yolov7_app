@@ -44,7 +44,7 @@ steps:
 
   - id: DL_COCO_NAMES
     name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
+    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names']
     waitFor: ['-']
 
   - id: DL_YOLOV7_TINY_PT
