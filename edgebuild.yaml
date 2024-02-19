@@ -62,7 +62,6 @@
     - name: Build PyTorch Yolov7 image
       ansible.builtin.shell: |
         docker buildx build \
-        --load \
         --tag={{ image_name }}:{{ tag }} \
         --build-arg=BASE_IMAGE={{ base_image }} \
         --file=l4t.Dockerfile .
