@@ -56,7 +56,6 @@
 
     - name: Build PyTorch Yolov7 image
       ansible.builtin.shell: |
-        export DOCKER_BUILDKIT=1
         docker build \
         --tag={{ image_name }}:{{ tag }} \
         --build-arg=BASE_IMAGE={{ base_image }} \
