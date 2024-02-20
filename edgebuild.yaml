@@ -51,7 +51,7 @@
     - name: Set image vars
       set_fact:
         base_image: "{{ base_images[l4t_version] }}"
-        image_name: "gcr.io/teknoir/yolov7"
+        image_name: "us-central1-docker.pkg.dev/teknoir/teknoir-ai/yolov7-base"
         tag: "l4t{{ l4t_version }}"
 
     - name: Build PyTorch Yolov7 image
@@ -78,7 +78,7 @@
     - name: Push image
       ansible.builtin.shell: |
         echo "{{ access_token }}" | \
-        docker login -u oauth2accesstoken --password-stdin https://gcr.io/teknoir
+        docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev/teknoir
         docker push {{ image_name }}:{{ tag }}
       vars:
         ansible_command_timeout: 6000
