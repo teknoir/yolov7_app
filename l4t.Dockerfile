@@ -15,9 +15,6 @@ ENV WANDB_MODE=disabled
 
 ENV DEVICE=0
 
-ADD coco.names .
-ADD yolov7-tiny.pt .
-
 ADD tracker tracker/
 ADD app.py .
 
