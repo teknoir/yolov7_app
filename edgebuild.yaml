@@ -53,6 +53,16 @@
         image_name: "us-central1-docker.pkg.dev/teknoir/teknoir-ai/yolov7-base"
         tag: "l4t{{ l4t_version }}"
 
+    - name: Get temporary registry access token
+      local_action:
+        module: ansible.builtin.command
+        _raw_params: gcloud auth application-default print-access-token
+      register: access_token_result
+
+    - name: Set access token variable
+      set_fact:
+        access_token: "{{ access_token_result.stdout }}"
+
     - name: Login to docker registry
       ansible.builtin.shell: |
         echo "{{ access_token }}" | \
@@ -68,16 +78,6 @@
         chdir: /opt/teknoir/yolov7
       vars:
         ansible_command_timeout: 18000
-
-    - name: Get temporary registry access token
-      local_action:
-        module: ansible.builtin.command
-        _raw_params: gcloud auth application-default print-access-token
-      register: access_token_result
-
-    - name: Set access token variable
-      set_fact:
-        access_token: "{{ access_token_result.stdout }}"
 
     - name: Push image
       ansible.builtin.shell: |
