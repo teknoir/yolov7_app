@@ -39,7 +39,6 @@
     - name: Fix Nvidia versioning f-up
       set_fact:
         l4t_version: r32.7.1
-        real_l4t_version: r32.7.1
 
     - name: Set images var
       set_fact:
@@ -85,11 +84,3 @@
         docker push {{ image_name }}:{{ tag }}
       vars:
         ansible_command_timeout: 6000
-
-    - name: Fix Nvidia versioning f-up
-      ansible.builtin.shell: |
-        docker tag {{ image_name }}:{{ tag }} {{ image_name }}:l4t{{ real_l4t_version }}
-        docker push {{ image_name }}:l4t{{ real_l4t_version }}
-      vars:
-        ansible_command_timeout: 6000
-      when: l4t_version == "r32.7.1"
