@@ -53,6 +53,11 @@
         image_name: "us-central1-docker.pkg.dev/teknoir/teknoir-ai/yolov7-base"
         tag: "l4t{{ l4t_version }}"
 
+    - name: Login to docker registry
+      ansible.builtin.shell: |
+        echo "{{ access_token }}" | \
+        docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev/teknoir
+
     - name: Build PyTorch Yolov7 image
       ansible.builtin.shell: |
         docker build \
@@ -76,8 +81,6 @@
 
     - name: Push image
       ansible.builtin.shell: |
-        echo "{{ access_token }}" | \
-        docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev/teknoir
         docker push {{ image_name }}:{{ tag }}
       vars:
         ansible_command_timeout: 6000
