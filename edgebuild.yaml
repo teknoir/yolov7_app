@@ -43,10 +43,9 @@
     - name: Set images var
       set_fact:
         base_images:
-          "r32.6.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r32.6.1-pth1.9-py3"
-          "r32.7.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
-          "r32.7.2": "gcr.io/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
-          "r34.1.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r34.1.1-pth1.11-py3"
+          "r32.6.1": "us-central1-docker.pkg.dev/teknoir/nvidia/l4t-pytorch:r32.6.1-pth1.9-py3"
+          "r32.7.1": "us-central1-docker.pkg.dev/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
+          "r34.1.1": "us-central1-docker.pkg.dev/teknoir/nvidia/l4t-pytorch:r34.1.1-pth1.11-py3"
 
     - name: Set image vars
       set_fact:

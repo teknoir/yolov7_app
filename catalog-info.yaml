@@ -25,6 +25,7 @@ spec:
   lifecycle: experimental
   system: system:teknoir/computer-vision
   dependsOn:
+    #TODO: ask Anders about component references pointing to artifact registry
     - component:teknoir/gcr.io.teknoir.yolov7
     - component:teknoir/gcr.io.teknoir.yolov7-base
     - component:teknoir/gcr.io.teknoir.yolov7-vanilla

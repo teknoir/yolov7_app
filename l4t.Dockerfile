@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=gcr.io/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3
+ARG BASE_IMAGE=us-central1-docker.pkg.dev/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3
 FROM ${BASE_IMAGE}
 
 RUN mkdir -p /usr/src/app
