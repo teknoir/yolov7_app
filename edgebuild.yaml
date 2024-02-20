@@ -39,6 +39,7 @@
     - name: Fix Nvidia versioning f-up
       set_fact:
         l4t_version: r32.7.1
+        real_l4t_version: r32.7.1
 
     - name: Set images var
       set_fact:
