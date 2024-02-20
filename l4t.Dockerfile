@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN python3 -m pip install --upgrade pip wheel
-RUN python3 -m pip install --no-cache Pillow paho.mqtt numpy bson torch pandas requests torchvision opencv-python-headless==4.5.5.64 tqdm PyYAML matplot seaborn scipy
+RUN python3 -m pip install --no-cache Pillow paho.mqtt==1.6.1 numpy bson torch pandas requests torchvision opencv-python-headless==4.5.5.64 tqdm PyYAML matplot seaborn scipy
 RUN python3 -m pip install --no-cache lap
 
 ENV OMP_NUM_THREADS=1
@@ -15,7 +15,11 @@ ENV WANDB_MODE=disabled
 
 ENV DEVICE=0
 
+ADD coco.names .
+ADD yolov7-tiny.pt .
+
 ADD tracker tracker/
 ADD app.py .
+
 
 CMD ["python3", "app.py"]

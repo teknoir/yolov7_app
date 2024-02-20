@@ -10,8 +10,8 @@ WORKDIR /usr/src/app
 ENV PIP_BREAK_SYSTEM_PACKAGES 1
 RUN python -m pip install --upgrade pip wheel
 RUN pip uninstall -y Pillow torchtext  # torch torchvision
-RUN pip install --no-cache -r requirements.txt paho.mqtt bson Pillow>=9.1.0 \
-    opencv-python-headless==4.5.5.62 --extra-index-url https://download.pytorch.org/whl/cu113
+RUN pip install --no-cache -r requirements.txt paho.mqtt==1.6.1 bson Pillow>=9.1.0 \
+    opencv-python-headless==4.5.5.62 numpy scipy lap --extra-index-url https://download.pytorch.org/whl/cu113
 # NOT USED:  albumentations wandb gsutil notebook
 
 # OBJECT TRACKING DEPENDENCIES
