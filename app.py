@@ -32,6 +32,11 @@ APP_VERSION = os.getenv('APP_VERSION', '0.1.0')
 args = {
     "APP_NAME": APP_NAME,
     "APP_VERSION": APP_VERSION,
+    "MODEL_NAME": os.getenv("MODEL_NAME", "unknown"),
+    'MODEL_VERSION': os.getenv("MODEL_VERSION", "unknown"),
+    'MODEL_ID': os.getenv("MODEL_ID", "unknown"),
+    "TRAINING_DATASET": os.getenv("TRAINING_DATASET", "unknown"),
+    "CONTAINER_IMAGE": os.getenv("CONTAINER_IMAGE", "unknown"),
     'MQTT_IN_0': os.getenv("MQTT_IN_0", f"{APP_NAME}/images"),
     'MQTT_OUT_0': os.getenv("MQTT_OUT_0", f"{APP_NAME}/events"),
     'MQTT_VERSION': os.getenv("MQTT_VERSION", '3'),
@@ -338,6 +343,15 @@ def on_message(c, userdata, msg):
     output = base_payload.copy() # copy everything for frontend, even if no detections
     output["detections"] = detections
     output["image"] = data_received["image"]
+    output["model_info"] = {
+                "model_name": args["MODEL_NAME"],
+                "model_version": args["MODEL_VERSION"],
+                "model_id": args["MODEL_ID"],
+                "model_type": "object_detection",
+                "model_weights": args["WEIGHTS"],
+                "model_training_dataset": args["TRAINING_DATASET"],
+                "model_image": args["CONTAINER_IMAGE"],
+            }
 
     msg = json.dumps(output, cls=NumpyEncoder)
     client.publish(userdata['MQTT_OUT_0'], msg)

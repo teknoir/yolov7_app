@@ -2,7 +2,7 @@
 # If we only add files in the last layers of the image, it can be done without cross compilation or directly on the device
 # I.e. models, weights, settings and python files can be added here, as long as there is nothing executed (no adding of deps etc.)
 
-ARG BASE_IMAGE=gcr.io/teknoir/yolov7:l4tr32.7.1
+ARG BASE_IMAGE=us-central1-docker.pkg.dev/teknoir/teknoir-ai/yolov7-base:l4tr32.7.1
 FROM ${BASE_IMAGE}
 
 ARG MODEL_NAME=yolov7

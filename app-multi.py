@@ -41,6 +41,8 @@ args = {
     'MODEL_NAME': os.getenv("MODEL_NAME", "yolov7-coco-bytetrack"),
     'MODEL_VERSION': os.getenv("MODEL_VERSION", "0.1"),
     'MODEL_ID': os.getenv("MODEL_ID", "abc123"),
+    "TRAINING_DATASET": os.getenv("TRAINING_DATASET", "unknown"),
+    "CONTAINER_IMAGE": os.getenv("CONTAINER_IMAGE", "unknown"),
 
     'WEIGHTS': os.getenv("WEIGHTS", "model.pt"),
     'AGNOSTIC_NMS': os.getenv("AGNOSTIC_NMS", ""),
@@ -304,6 +306,15 @@ def on_message(c, userdata, msg):
                 })
 
             payload["results"].append(result)
+            payload["model_info"] = {
+                "model_name": args["MODEL_NAME"],
+                "model_version": args["MODEL_VERSION"],
+                "model_id": args["MODEL_ID"],
+                "model_type": "object_detection",
+                "model_weights": args["WEIGHTS"],
+                "model_training_dataset": args["TRAINING_DATASET"],
+                "model_image": args["CONTAINER_IMAGE"],
+            }
 
         msg = json.dumps(payload, cls=NumpyEncoder)
         client.publish(userdata['MQTT_OUT_0'], msg)

@@ -38,37 +38,20 @@
 
     - name: Fix Nvidia versioning f-up
       set_fact:
-        real_l4t_version: r32.7.2
-        l4t_version: r32.7.1
-      when: l4t_version == "r32.7.2"
+        l4t_version: r34.1.1
 
     - name: Set images var
       set_fact:
         base_images:
-          "r32.6.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r32.6.1-pth1.9-py3"
-          "r32.7.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
-          "r32.7.2": "gcr.io/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
-          "r34.1.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r34.1.1-pth1.11-py3"
-          "r35.1.0": "gcr.io/teknoir/nvidia/l4t-pytorch:r35.1.0-pth1.11-py3"
-          "r35.3.1": "gcr.io/teknoir/nvidia/l4t-pytorch:r35.3.1-pth1.11-py3"
+          "r32.6.1": "us-central1-docker.pkg.dev/teknoir/nvidia/l4t-pytorch:r32.6.1-pth1.9-py3"
+          "r32.7.1": "us-central1-docker.pkg.dev/teknoir/nvidia/l4t-pytorch:r32.7.1-pth1.10-py3"
+          "r34.1.1": "us-central1-docker.pkg.dev/teknoir/nvidia/l4t-pytorch:r34.1.1-pth1.11-py3"
 
     - name: Set image vars
       set_fact:
         base_image: "{{ base_images[l4t_version] }}"
-        image_name: "gcr.io/teknoir/yolov7"
+        image_name: "us-central1-docker.pkg.dev/teknoir/teknoir-ai/yolov7-base"
         tag: "l4t{{ l4t_version }}"
-
-    - name: Build PyTorch Yolov7 image
-      ansible.builtin.shell: |
-        export DOCKER_BUILDKIT=1
-        docker build \
-        --tag={{ image_name }}:{{ tag }} \
-        --build-arg=BASE_IMAGE={{ base_image }} \
-        --file=l4t.Dockerfile .
-      args:
-        chdir: /opt/teknoir/yolov7
-      vars:
-        ansible_command_timeout: 18000
 
     - name: Get temporary registry access token
       local_action:
@@ -80,18 +63,24 @@
       set_fact:
         access_token: "{{ access_token_result.stdout }}"
 
-    - name: Push image
+    - name: Login to docker registry
       ansible.builtin.shell: |
         echo "{{ access_token }}" | \
-        docker login -u oauth2accesstoken --password-stdin https://gcr.io/teknoir
+        docker login -u oauth2accesstoken --password-stdin https://us-central1-docker.pkg.dev/teknoir
+
+    - name: Build PyTorch Yolov7 image
+      ansible.builtin.shell: |
+        docker build \
+        --tag={{ image_name }}:{{ tag }} \
+        --build-arg=BASE_IMAGE={{ base_image }} \
+        --file=l4t.Dockerfile .
+      args:
+        chdir: /opt/teknoir/yolov7
+      vars:
+        ansible_command_timeout: 18000
+
+    - name: Push image
+      ansible.builtin.shell: |
         docker push {{ image_name }}:{{ tag }}
       vars:
         ansible_command_timeout: 6000
-
-    - name: Fix Nvidia versioning f-up
-      ansible.builtin.shell: |
-        docker tag {{ image_name }}:{{ tag }} {{ image_name }}:l4t{{ real_l4t_version }}
-        docker push {{ image_name }}:l4t{{ real_l4t_version }}
-      vars:
-        ansible_command_timeout: 6000
-      when: l4t_version == "r32.7.1"

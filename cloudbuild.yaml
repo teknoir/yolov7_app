@@ -28,7 +28,7 @@ steps:
           --platform=linux/amd64,linux/arm64 \
           --push \
           --label "git-commit=${SHORT_SHA}" \
-          -t gcr.io/${PROJECT_ID}/yolov7:${BRANCH_NAME}-cpu-${SHORT_SHA} \
+          -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-base:${BRANCH_NAME}-cpu-${SHORT_SHA} \
           -f cpu.Dockerfile .
         
         if [ ${BRANCH_NAME} == 'main' ]; then
@@ -37,14 +37,14 @@ steps:
             --platform=linux/amd64,linux/arm64 \
             --push \
             --label "git-commit=${SHORT_SHA}" \
-            -t gcr.io/${PROJECT_ID}/yolov7:cpu-latest \
+            -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-base:cpu-latest \
             -f cpu.Dockerfile .
         fi
     waitFor: ['INIT-BUILDX']
 
   - id: DL_COCO_NAMES
     name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/onnx/models/main/vision/object_detection_segmentation/yolov4/dependencies/coco.names']
+    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names']
     waitFor: ['-']
 
   - id: DL_YOLOV7_TINY_PT
@@ -66,7 +66,7 @@ steps:
         set -eo pipefail
         ./docker-buildx build \
           --builder teknoirmultiarchbuilder \
-          --build-arg=BASE_IMAGE=gcr.io/teknoir/yolov7:${BRANCH_NAME}-cpu-${SHORT_SHA} \
+          --build-arg=BASE_IMAGE=us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-base:${BRANCH_NAME}-cpu-${SHORT_SHA} \
           --build-arg=MODEL_NAME=yolov7 \
           --build-arg=TRAINING_DATASET=coco \
           --build-arg=IMG_SIZE=640 \
@@ -75,13 +75,13 @@ steps:
           --platform=linux/amd64,linux/arm64 \
           --label "git-commit=${SHORT_SHA}" \
           --push \
-          -t gcr.io/${PROJECT_ID}/yolov7-vanilla:${BRANCH_NAME}-cpu-${SHORT_SHA} \
+          -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-vanilla:${BRANCH_NAME}-cpu-${SHORT_SHA} \
           -f ./vanilla.Dockerfile .
         
         if [ ${BRANCH_NAME} == 'main' ]; then
           ./docker-buildx build \
             --builder teknoirmultiarchbuilder \
-            --build-arg=BASE_IMAGE=gcr.io/teknoir/yolov7:${BRANCH_NAME}-cpu-${SHORT_SHA} \
+            --build-arg=BASE_IMAGE=us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-base:${BRANCH_NAME}-cpu-${SHORT_SHA} \
             --build-arg=MODEL_NAME=yolov7 \
             --build-arg=TRAINING_DATASET=coco \
             --build-arg=IMG_SIZE=640 \
@@ -90,7 +90,7 @@ steps:
             --platform=linux/amd64,linux/arm64 \
             --label "git-commit=${SHORT_SHA}" \
             --push \
-            -t gcr.io/${PROJECT_ID}/yolov7-vanilla:cpu-latest \
+            -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-vanilla:cpu-latest \
             -f ./vanilla.Dockerfile .
         fi
     waitFor: ['BUILD-BASE-IMAGE', 'DL_COCO_NAMES', 'DL_YOLOV7_TINY_PT']
