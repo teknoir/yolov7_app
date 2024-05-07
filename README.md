@@ -58,6 +58,6 @@ Assuming you have a MQTT broker on your local network and a device that is emitt
 
 To start a cloudbuild for the CPU version of the image run:
 ```
-gcloud --project=teknoir builds submit . --config=cloudbuild_cpu.yaml --substitutions=SHORT_SHA="build-my-local-changes",BRANCH_NAME="test"
+gcloud --project=teknoir builds submit . --config=cloudbuild_l4t.yaml --substitutions=SHORT_SHA="build-my-local-changes",BRANCH_NAME="test"
 ```
 

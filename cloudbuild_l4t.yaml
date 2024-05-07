@@ -5,26 +5,38 @@ options:
     - DOCKER_CLI_EXPERIMENTAL=enabled
 
 steps:
-  - id: l4t_base
-    name: gcr.io/teknoir/edgebuild
-    env:
-      - 'PROJECT_ID=${PROJECT_ID}'
-      - 'BRANCH_NAME=${BRANCH_NAME}'
-      - 'SHORT_SHA=${SHORT_SHA}'
+  - id: INIT-BUILDX
+    name: gcr.io/cloud-builders/docker:24.0.9
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        docker run --privileged gcr.io/teknoir/binfmt-qemu:v0.8-v7.0.0
+        docker buildx create --name mybuilder --use
+        docker buildx inspect --bootstrap
     waitFor: ['-']
 
-  - id: coco_names
+  - id: BUILD-BASE-IMAGE
+    name: gcr.io/cloud-builders/docker:24.0.9
+    entrypoint: 'bash'
+    args:
+      - -c
+      - |
+        ./build-base.sh
+    waitFor: ['INIT-BUILDX']
+
+  - id: DL_COCO_NAMES
     name: gcr.io/cloud-builders/wget
     args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names']
     waitFor: ['-']
 
-  - id: yolov7_tiny_pt
+  - id: DL_YOLOV7_TINY_PT
     name: gcr.io/cloud-builders/wget
     args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
     waitFor: ['-']
 
-  - id: yolov7_vanilla
-    name: gcr.io/cloud-builders/docker
+  - id: BUILD-VANILLA-IMAGE-EXAMPLE
+    name: gcr.io/cloud-builders/docker:24.0.9
     env:
       - 'DOCKER_CLI_EXPERIMENTAL=enabled'
       - 'PROJECT_ID=${PROJECT_ID}'
@@ -34,9 +46,5 @@ steps:
     args:
       - -c
       - |
-        set -eo pipefail
-        ./build_l4t_vanilla.sh
-    waitFor:
-      - l4t_base
-      - coco_names
-      - yolov7_tiny_pt
+        ./build.sh
+    waitFor: ['BUILD-BASE-IMAGE', 'DL_COCO_NAMES', 'DL_YOLOV7_TINY_PT']
