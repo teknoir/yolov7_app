@@ -5,7 +5,7 @@ export SHORT_SHA=${SHORT_SHA:-"head"}
 export BRANCH_NAME=${BRANCH_NAME:-"local"}
 export PROJECT_ID=${PROJECT_ID:-"teknoir"}
 
-# Get vanilla model and COCOA names file
+# Get vanilla model and COCO names file
 download_cache(){
   FILE=$1
   URL=$2
@@ -39,6 +39,20 @@ build_and_push(){
     --build-arg=CLASS_NAMES_FILE=coco.names \
     --platform=linux/arm64 \
     --label "git-commit=${SHORT_SHA}" \
+    --label "teknoir.org/app-name=yolov7-vanilla-${BRANCH_NAME}-${SHORT_SHA}" \
+    --label "teknoir.org/app-type=model" \
+    --label "teknoir.org/gpu=nvidia_l4t" \
+    --label "teknoir.org/l4t-version=${TAG}" \
+    --label "teknoir.org/model-type-description=yolov7-vanilla-object-detection" \
+    --label "teknoir.org/model-name=yolov7-vanilla" \
+    --label "teknoir.org/version=${BRANCH_NAME}-${SHORT_SHA}" \
+    --label "teknoir.org/framework=pytorch" \
+    --label "teknoir.org/memory-usage=low" \
+    --label "teknoir.org/dataset-name=coco" \
+    --label "teknoir.org/dataset-version=v1.0.0" \
+    --label "teknoir.org/minimum-required-cpu=1" \
+    --label "teknoir.org/minimum-required-ram=3GB" \
+    --label "teknoir.org/minimum-required-gpu=0" \
     --push \
     -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-vanilla:${TAG}-${BRANCH_NAME}-${SHORT_SHA} \
     -f ./vanilla.Dockerfile .

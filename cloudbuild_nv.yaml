@@ -1,4 +1,4 @@
-timeout: '18000s'
+timeout: "18000s"
 
 options:
   env:
@@ -7,18 +7,23 @@ options:
 steps:
   - id: INIT-BUILDX
     name: gcr.io/cloud-builders/docker
-    entrypoint: 'bash'
+    entrypoint: "bash"
     args:
       - -c
       - |
         docker run --privileged gcr.io/teknoir/binfmt-qemu:v0.8-v7.0.0
         docker buildx create --name teknoirmultiarchbuilder --use
         docker buildx inspect --bootstrap
-    waitFor: ['-']
+    waitFor: ["-"]
 
   - id: BUILD-BASE-IMAGE
     name: gcr.io/cloud-builders/docker
-    entrypoint: 'bash'
+    env:
+      - "DOCKER_CLI_EXPERIMENTAL=enabled"
+      - "PROJECT_ID=${PROJECT_ID}"
+      - "BRANCH_NAME=${BRANCH_NAME}"
+      - "SHORT_SHA=${SHORT_SHA}"
+    entrypoint: "bash"
     args:
       - -c
       - |
@@ -28,6 +33,20 @@ steps:
           --platform=linux/amd64,linux/arm64 \
           --push \
           --label "git-commit=${SHORT_SHA}" \
+          --label "teknoir.org/app-name=yolov7-base-${BRANCH_NAME}-${SHORT_SHA}" \
+          --label "teknoir.org/app-type=model" \
+          --label "teknoir.org/gpu=nvidia_l4t" \
+          --label "teknoir.org/l4t-version=l4tr34.1.1" \
+          --label "teknoir.org/model-type-description=object-detection" \
+          --label "teknoir.org/model-name=yolov7-base" \
+          --label "teknoir.org/version=${BRANCH_NAME}-${SHORT_SHA}" \
+          --label "teknoir.org/framework=pytorch" \
+          --label "teknoir.org/memory-usage=low" \
+          --label "teknoir.org/dataset-name=coco" \
+          --label "teknoir.org/dataset-version=v1.0.0" \
+          --label "teknoir.org/minimum-required-cpu=1" \
+          --label "teknoir.org/minimum-required-ram=3GB" \
+          --label "teknoir.org/minimum-required-gpu=0" \
           -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-base:${BRANCH_NAME}-nv-${SHORT_SHA} \
           -f nv.Dockerfile .
 
@@ -37,29 +56,53 @@ steps:
             --platform=linux/amd64,linux/arm64 \
             --push \
             --label "git-commit=${SHORT_SHA}" \
+            --label "teknoir.org/app-name=yolov7-base-${BRANCH_NAME}-${SHORT_SHA}" \
+            --label "teknoir.org/app-type=model" \
+            --label "teknoir.org/gpu=nvidia_l4t" \
+            --label "teknoir.org/l4t-version=l4tr34.1.1" \
+            --label "teknoir.org/model-type-description=object-detection" \
+            --label "teknoir.org/model-name=yolov7-base" \
+            --label "teknoir.org/version=${BRANCH_NAME}-${SHORT_SHA}" \
+            --label "teknoir.org/framework=pytorch" \
+            --label "teknoir.org/memory-usage=low" \
+            --label "teknoir.org/dataset-name=coco" \
+            --label "teknoir.org/dataset-version=v1.0.0" \
+            --label "teknoir.org/minimum-required-cpu=1" \
+            --label "teknoir.org/minimum-required-ram=3GB" \
+            --label "teknoir.org/minimum-required-gpu=0" \
             -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-base:nv-latest \
             -f nv.Dockerfile .
         fi
-    waitFor: ['INIT-BUILDX']
+    waitFor: ["INIT-BUILDX"]
 
   - id: DL_COCO_NAMES
     name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'coco.names', 'https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names']
-    waitFor: ['-']
+    args:
+      [
+        "-qO",
+        "coco.names",
+        "https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names",
+      ]
+    waitFor: ["-"]
 
   - id: DL_YOLOV7_TINY_PT
     name: gcr.io/cloud-builders/wget
-    args: ['-qO', 'yolov7-tiny.pt', 'https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt']
-    waitFor: ['-']
+    args:
+      [
+        "-qO",
+        "yolov7-tiny.pt",
+        "https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-tiny.pt",
+      ]
+    waitFor: ["-"]
 
   - id: BUILD-VANILLA-IMAGE-EXAMPLE
     name: gcr.io/cloud-builders/docker
     env:
-      - 'DOCKER_CLI_EXPERIMENTAL=enabled'
-      - 'PROJECT_ID=${PROJECT_ID}'
-      - 'BRANCH_NAME=${BRANCH_NAME}'
-      - 'SHORT_SHA=${SHORT_SHA}'
-    entrypoint: 'bash'
+      - "DOCKER_CLI_EXPERIMENTAL=enabled"
+      - "PROJECT_ID=${PROJECT_ID}"
+      - "BRANCH_NAME=${BRANCH_NAME}"
+      - "SHORT_SHA=${SHORT_SHA}"
+    entrypoint: "bash"
     args:
       - -c
       - |
@@ -74,10 +117,24 @@ steps:
           --build-arg=CLASS_NAMES_FILE=coco.names \
           --platform=linux/amd64,linux/arm64 \
           --label "git-commit=${SHORT_SHA}" \
+          --label "teknoir.org/app-name=yolov7-vanilla-${BRANCH_NAME}-${SHORT_SHA}" \
+          --label "teknoir.org/app-type=model" \
+          --label "teknoir.org/gpu=nvidia_l4t" \
+          --label "teknoir.org/l4t-version=l4tr34.1.1" \
+          --label "teknoir.org/model-type-description=object-detection" \
+          --label "teknoir.org/model-name=yolov7-vanilla" \
+          --label "teknoir.org/version=${BRANCH_NAME}-${SHORT_SHA}" \
+          --label "teknoir.org/framework=pytorch" \
+          --label "teknoir.org/memory-usage=low" \
+          --label "teknoir.org/dataset-name=coco" \
+          --label "teknoir.org/dataset-version=v1.0.0" \
+          --label "teknoir.org/minimum-required-cpu=1" \
+          --label "teknoir.org/minimum-required-ram=3GB" \
+          --label "teknoir.org/minimum-required-gpu=0" \
           --push \
           -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-vanilla:${BRANCH_NAME}-nv-${SHORT_SHA} \
           -f ./vanilla.Dockerfile .
-        
+
         if [ ${BRANCH_NAME} == 'main' ]; then
           ./docker-buildx build \
             --builder teknoirmultiarchbuilder \
@@ -89,8 +146,22 @@ steps:
             --build-arg=CLASS_NAMES_FILE=coco.names \
             --platform=linux/amd64,linux/arm64 \
             --label "git-commit=${SHORT_SHA}" \
+            --label "teknoir.org/app-name=yolov7-vanilla-${BRANCH_NAME}-${SHORT_SHA}" \
+            --label "teknoir.org/app-type=model" \
+            --label "teknoir.org/gpu=nvidia_l4t" \
+            --label "teknoir.org/l4t-version=l4tr34.1.1" \
+            --label "teknoir.org/model-type-description=object-detection" \
+            --label "teknoir.org/model-name=yolov7-vanilla" \
+            --label "teknoir.org/version=${BRANCH_NAME}-${SHORT_SHA}" \
+            --label "teknoir.org/framework=pytorch" \
+            --label "teknoir.org/memory-usage=low" \
+            --label "teknoir.org/dataset-name=coco" \
+            --label "teknoir.org/dataset-version=v1.0.0" \
+            --label "teknoir.org/minimum-required-cpu=1" \
+            --label "teknoir.org/minimum-required-ram=3GB" \
+            --label "teknoir.org/minimum-required-gpu=0" \
             --push \
             -t us-central1-docker.pkg.dev/${PROJECT_ID}/teknoir-ai/yolov7-vanilla:nv-latest \
             -f ./vanilla.Dockerfile .
         fi
-    waitFor: ['BUILD-BASE-IMAGE', 'DL_COCO_NAMES', 'DL_YOLOV7_TINY_PT']
+    waitFor: ["BUILD-BASE-IMAGE", "DL_COCO_NAMES", "DL_YOLOV7_TINY_PT"]
